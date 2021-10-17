@@ -1,12 +1,13 @@
 package setup
 
 import (
+	"net"
+
 	authenticationAPI "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication/v1"
+	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"net"
 )
-import "github.com/kelseyhightower/envconfig"
 
 const (
 	envCfgKey = "service"

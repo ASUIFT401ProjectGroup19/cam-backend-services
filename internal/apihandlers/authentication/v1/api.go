@@ -2,12 +2,13 @@ package v1
 
 import (
 	"context"
+
 	authenticationAPIv1 "github.com/ASUIFT401ProjectGroup19/cam-backend-services/pkg/gen/go/grpc/authentication/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
-type Config struct {}
+type Config struct{}
 
 type APIv1 struct {
 	authenticationAPIv1.UnimplementedAuthenticationAPIServer
