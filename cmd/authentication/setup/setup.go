@@ -1,9 +1,11 @@
 package setup
 
 import (
+	"fmt"
 	"net"
 
-	authenticationAPI "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication/v1"
+	authenticationAPI "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
+
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -39,7 +41,7 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		authenticationAPI.New(logger),
 	}
 
-	listener, err := net.Listen("tcp", conf.Port)
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", conf.Port))
 	if err != nil {
 		return nil, nil, nil, err
 	}

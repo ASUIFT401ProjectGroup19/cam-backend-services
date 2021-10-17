@@ -1,18 +1,29 @@
 TOOLDIR := .bin
 PROTOC_GEN_GO_VERSION := v1.27.1
 PROTOC_GEN_GO_GRPC_VERSION := v1.1.0
+BUF_VERSION := v1.0.0-rc5
 export GOBIN=$(abspath $(TOOLDIR))
 export PATH := $(GOBIN):$(PATH)
 
-prototool:
+tools:
 	mkdir -p $(TOOLDIR)
-	cd $(TOOLDIR); go get google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
-	cd $(TOOLDIR); go get google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
-	cd $(TOOLDIR); curl -L -o p.zip https://github.com/protocolbuffers/protobuf/releases/download/v3.18.1/protoc-3.18.1-linux-x86_64.zip
-	cd $(TOOLDIR); unzip -o p.zip
+	go install google.golang.org/protobuf/cmd/protoc-gen-go@$(PROTOC_GEN_GO_VERSION)
+	go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@$(PROTOC_GEN_GO_GRPC_VERSION)
+	go install github.com/bufbuild/buf/cmd/buf@$(BUF_VERSION) github.com/bufbuild/buf/cmd/protoc-gen-buf-breaking@$(BUF_VERSION) github.com/bufbuild/buf/cmd/protoc-gen-buf-lint@$(BUF_VERSION)
+
+.PHONY: lint
+lint: tools
+	buf lint proto/
 
 .PHONY: generate
-generate: prototool
-	mkdir -p pkg/gen/go
-	.bin/bin/protoc --go_out=pkg/gen/go --go-grpc_out=pkg/gen/go -I proto/ proto/*
+generate: lint
+	buf generate proto/
 
+build: generate
+	docker build -t backend/authentication .
+
+run:
+	docker compose up -d
+
+stop:
+	docker compose down -v
