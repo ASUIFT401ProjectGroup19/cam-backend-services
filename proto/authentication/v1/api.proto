@@ -4,7 +4,7 @@ package authentication.v1;
 
 option go_package = "github.com/ASUIFT401ProjectGroup19/cam-backend-services/pkg/gen/proto/go/authentication/v1;authenticationv1";
 
-service AuthenticationAPIService {
+service AuthenticationService {
     rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
 }
 

@@ -11,7 +11,7 @@ import (
 type Config struct{}
 
 type APIv1 struct {
-	authenticationAPIv1.UnimplementedAuthenticationAPIServiceServer
+	authenticationAPIv1.UnsafeAuthenticationServiceServer
 	log *zap.Logger
 }
 
@@ -24,7 +24,7 @@ func (a *APIv1) CreateAccount(ctx context.Context, request *authenticationAPIv1.
 func (a *APIv1) Close() {}
 
 func (a *APIv1) RegisterAPIServer(server *grpc.Server) {
-	authenticationAPIv1.RegisterAuthenticationAPIServiceServer(server, a)
+	authenticationAPIv1.RegisterAuthenticationServiceServer(server, a)
 }
 
 func New(logger *zap.Logger) *APIv1 {
