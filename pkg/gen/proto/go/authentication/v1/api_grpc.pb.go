@@ -39,19 +39,21 @@ func (c *authenticationServiceClient) CreateAccount(ctx context.Context, in *Cre
 }
 
 // AuthenticationServiceServer is the server API for AuthenticationService service.
-// All implementations should embed UnimplementedAuthenticationServiceServer
+// All implementations must embed UnimplementedAuthenticationServiceServer
 // for forward compatibility
 type AuthenticationServiceServer interface {
 	CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error)
+	mustEmbedUnimplementedAuthenticationServiceServer()
 }
 
-// UnimplementedAuthenticationServiceServer should be embedded to have forward compatible implementations.
+// UnimplementedAuthenticationServiceServer must be embedded to have forward compatible implementations.
 type UnimplementedAuthenticationServiceServer struct {
 }
 
 func (UnimplementedAuthenticationServiceServer) CreateAccount(context.Context, *CreateAccountRequest) (*CreateAccountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateAccount not implemented")
 }
+func (UnimplementedAuthenticationServiceServer) mustEmbedUnimplementedAuthenticationServiceServer() {}
 
 // UnsafeAuthenticationServiceServer may be embedded to opt out of forward compatibility for this service.
 // Use of this interface is not recommended, as added methods to AuthenticationServiceServer will

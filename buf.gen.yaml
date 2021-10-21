@@ -7,4 +7,10 @@ plugins:
   out: pkg/gen/proto/go
   opt:
   - paths=source_relative
-  - require_unimplemented_servers=false
+  - require_unimplemented_servers=true
+- name: js
+  out: pkg/gen/proto/js
+  opt: import_style=commonjs,binary
+- name: grpc-web
+  out: pkg/gen/proto/js
+  opt: import_style=commonjs,mode=grpcwebtext

@@ -11,7 +11,7 @@ import (
 type Config struct{}
 
 type APIv1 struct {
-	authenticationAPIv1.UnsafeAuthenticationServiceServer
+	authenticationAPIv1.AuthenticationServiceServer
 	log *zap.Logger
 }
 
