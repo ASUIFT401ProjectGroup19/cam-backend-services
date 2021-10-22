@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 
+	"go.uber.org/zap/zapcore"
+
 	authenticationAPI "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
 
 	"github.com/kelseyhightower/envconfig"
@@ -32,7 +34,14 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
-	logger, err := zap.NewDevelopment()
+	logger, err := zap.Config{
+		Level:    zap.NewAtomicLevelAt(zap.DebugLevel),
+		Encoding: "json",
+		EncoderConfig: zapcore.EncoderConfig{
+			MessageKey: "message",
+		},
+		OutputPaths: []string{"stdout"},
+	}.Build()
 	if err != nil {
 		return nil, nil, nil, err
 	}

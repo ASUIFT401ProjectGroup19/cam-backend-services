@@ -38,8 +38,11 @@ generate: lint
 build: generate
 	docker build -t backend/authentication .
 
+debug:
+	docker compose up debug-auth -d
+
 run:
-	docker compose up -d
+	docker compose up backend-auth -d --build
 
 stop:
 	docker compose down -v
