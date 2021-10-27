@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package authentication.v1;
+
+option go_package = "github.com/ASUIFT401ProjectGroup19/cam-backend-services/pkg/gen/proto/go/authentication/v1;authenticationv1";
+
+service AuthenticationService {
+    rpc CreateAccount(CreateAccountRequest) returns (CreateAccountResponse);
+}
+
+message CreateAccountRequest {
+    string account_name = 1;
+}
+
+message CreateAccountResponse {
+    bool success = 1;
+}
