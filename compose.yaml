@@ -1,16 +1,38 @@
 services:
   backend-auth:
     build: .
+    environment:
+      SERVICE_DB_DRIVER: mysql
+      SERVICE_DB_HOST: database
+      SERVICE_DB_DATABASE: captureamoment
+      SERVICE_DB_USERNAME: root
+      SERVICE_DB_PASSWORD: localpassword
+    networks:
+    - compose-proxy
     ports:
     - 10000:10000
+    restart: always
 
   debug-auth:
     command: dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient cmd/authentication/main.go
     build:
       dockerfile: debug.Dockerfile
+    environment:
+      SERVICE_DB_DRIVER: mysql
+      SERVICE_DB_HOST: database
+      SERVICE_DB_DATABASE: captureamoment
+      SERVICE_DB_USERNAME: root
+      SERVICE_DB_PASSWORD: localpassword
+      SERVICE_PORT: 10001
+    networks:
+    - compose-proxy
     ports:
     - 2345:2345
-    - 10000:10000
+    - 10001:10001
     restart: always
     volumes:
     - .:/src
+
+networks:
+  compose-proxy:
+    name: compose_proxy

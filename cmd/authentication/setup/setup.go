@@ -1,15 +1,15 @@
 package setup
 
 import (
+	"flag"
 	"fmt"
 	"net"
 
-	"go.uber.org/zap/zapcore"
-
-	authenticationAPI "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
-
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/camdb"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 )
 
@@ -18,7 +18,8 @@ const (
 )
 
 type Config struct {
-	authenticationAPI.Config
+	Auth *authentication.Config
+	DB   *camdb.Config
 	Port string `default:"10000"`
 }
 
@@ -27,9 +28,24 @@ type Handler interface {
 	RegisterAPIServer(*grpc.Server)
 }
 
+func GetConfig() (*Config, error) {
+	config := &Config{}
+
+	flag.Usage = func() { // To print all accepted ENV vars when run with -h
+		flag.PrintDefaults()
+		_ = envconfig.Usage(envCfgKey, config)
+	}
+	flag.Parse()
+
+	err := envconfig.Process(envCfgKey, config)
+	if err != nil {
+		return nil, err
+	}
+	return config, nil
+}
+
 func NewServer() (net.Listener, *grpc.Server, func(), error) {
-	conf := &Config{}
-	err := envconfig.Process(envCfgKey, conf)
+	config, err := GetConfig()
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -46,11 +62,16 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
-	handlers := []Handler{
-		authenticationAPI.New(logger),
+	db, err := camdb.New(config.DB, logger)
+	if err != nil {
+		return nil, nil, nil, err
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", conf.Port))
+	handlers := []Handler{
+		authentication.New(config.Auth, db, logger),
+	}
+
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.Port))
 	if err != nil {
 		return nil, nil, nil, err
 	}
