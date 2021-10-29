@@ -1,13 +1,5 @@
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
 cloud.google.com/go v0.34.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=
-github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211027172309-ec5a8bc7bfb8 h1:xE3gfiBYIwexCa54DCinoRWswoN+cCI60qOcpU/zOeE=
-github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211027172309-ec5a8bc7bfb8/go.mod h1:3LFVHYbLWz3X8CDpTbA8QzIirtu5sc9LeVf3vn7GdHg=
-github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211028004640-f15c91fa26de h1:uknCEg115j8UM5KWI+A7b7DZgEMdoQ2POw7MyWWMO7Y=
-github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211028004640-f15c91fa26de/go.mod h1:UiKTJissdHqk+znaQ/mlN9EZM2rUV8/JL9Oj8KITDkY=
-github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211028051004-8b38609af581 h1:uVLnqBI6eKucEOAvhWoJjDLJLEIhxXv8gQASx4NPmks=
-github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211028051004-8b38609af581/go.mod h1:UiKTJissdHqk+znaQ/mlN9EZM2rUV8/JL9Oj8KITDkY=
-github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211028052337-e64d9b327ff0 h1:MgA5ukXexOnSyfwCbXcqwd8HQLfXAxAH/+Cnko5c4lE=
-github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211028052337-e64d9b327ff0/go.mod h1:UiKTJissdHqk+znaQ/mlN9EZM2rUV8/JL9Oj8KITDkY=
 github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211029005622-eb65356d0858 h1:WgDInmLuNMPm653duJXh7+nm8NN5x6dxpIfgln18lzA=
 github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211029005622-eb65356d0858/go.mod h1:UiKTJissdHqk+znaQ/mlN9EZM2rUV8/JL9Oj8KITDkY=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
