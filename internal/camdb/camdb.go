@@ -1,9 +1,6 @@
 package camdb
 
 import (
-	"errors"
-	"fmt"
-
 	"go.uber.org/zap"
 
 	"github.com/go-sql-driver/mysql"
@@ -28,7 +25,7 @@ func New(config *Config, logger *zap.Logger) (*DB, error) {
 	case "mysql":
 		return newMySQL(config, logger)
 	default:
-		return nil, errors.New(fmt.Sprintf("unknown driver specified: %s", config.Driver))
+		return nil, &ErrorUnsupportedDriver{msg: config.Driver}
 	}
 }
 

@@ -41,3 +41,11 @@ type ErrorUnknown struct {
 func (e *ErrorUnknown) Error() string {
 	return fmt.Sprintf("unknown: %s", e.msg)
 }
+
+type ErrorUnsupportedDriver struct {
+	msg string
+}
+
+func (e *ErrorUnsupportedDriver) Error() string {
+	return fmt.Sprintf("unsupported driver: %s", e.msg)
+}
