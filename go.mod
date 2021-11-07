@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211029005622-eb65356d0858
 	github.com/go-sql-driver/mysql v1.5.0
+	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	go.uber.org/zap v1.19.1

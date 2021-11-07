@@ -1,4 +1,4 @@
-package camdb
+package cam
 
 import (
 	"context"
@@ -11,7 +11,23 @@ import (
 	"go.uber.org/zap"
 )
 
-func (d *DB) SetUser(user *cam.User) error {
+func CheckPassword(user *cam.User, password string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return &ErrorPasswordCheck{msg: err.Error()}
+	}
+	return nil
+}
+
+func (d *Driver) GetUser(username string) (*cam.User, error) {
+	u, err := cam.UserByEmail(context.Background(), d.db, username)
+	if err != nil {
+		return nil, &ErrorUserRetrieval{msg: err.Error()}
+	}
+	return u, nil
+}
+
+func (d *Driver) SetUser(user *cam.User) error {
 	hash, err := encrypt(user.Password)
 	if err != nil {
 		return &ErrorEncryptPassword{msg: err.Error()}
@@ -42,8 +58,8 @@ func (d *DB) SetUser(user *cam.User) error {
 	}
 }
 
-func encrypt(s string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.DefaultCost)
+func encrypt(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}

@@ -7,6 +7,9 @@ services:
       SERVICE_DB_DATABASE: captureamoment
       SERVICE_DB_USERNAME: root
       SERVICE_DB_PASSWORD: localpassword
+      SERVICE_TOKENMANAGER_SECRETKEY: secret
+      SERVICE_TOKENMANAGER_SIGNINGMETHOD: HS256
+      SERVICE_TOKENMANAGER_VALIDDURATION: 1m
     networks:
     - compose-proxy
     ports:
@@ -24,6 +27,9 @@ services:
       SERVICE_DB_USERNAME: root
       SERVICE_DB_PASSWORD: localpassword
       SERVICE_PORT: 10001
+      SERVICE_TOKENMANAGER_SECRETKEY: secret
+      SERVICE_TOKENMANAGER_SIGNINGMETHOD: HS256
+      SERVICE_TOKENMANAGER_VALIDDURATION: 1m
     networks:
     - compose-proxy
     ports:

@@ -14,12 +14,15 @@ This module relies on imports from another repository in this private organizati
 This application is configured via the environment. The following environment
 variables can be used:
 ```
-KEY                    TYPE      DEFAULT    REQUIRED    DESCRIPTION
-SERVICE_DB_DRIVER      String    mysql
-SERVICE_DB_HOST        String
-SERVICE_DB_DATABASE    String
-SERVICE_DB_USERNAME    String
-SERVICE_DB_PASSWORD    String
-SERVICE_PORT           String    10000
+KEY                                   TYPE      DEFAULT    REQUIRED    DESCRIPTION
+SERVICE_DB_DRIVER                     String    mysql
+SERVICE_DB_HOST                       String
+SERVICE_DB_DATABASE                   String
+SERVICE_DB_USERNAME                   String
+SERVICE_DB_PASSWORD                   String
+SERVICE_TOKENMANAGER_SECRETKEY        String
+SERVICE_TOKENMANAGER_SIGNINGMETHOD    String
+SERVICE_TOKENMANAGER_VALIDDURATION    String
+SERVICE_PORT                          String    10000
 ```
 

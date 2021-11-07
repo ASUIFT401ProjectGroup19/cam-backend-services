@@ -1,4 +1,4 @@
-package camdb
+package cam
 
 import (
 	"go.uber.org/zap"
@@ -15,12 +15,12 @@ type Config struct {
 	Password string
 }
 
-type DB struct {
+type Driver struct {
 	db  *sqlx.DB
 	log *zap.Logger
 }
 
-func New(config *Config, logger *zap.Logger) (*DB, error) {
+func New(config *Config, logger *zap.Logger) (*Driver, error) {
 	switch config.Driver {
 	case "mysql":
 		return newMySQL(config, logger)
@@ -29,7 +29,7 @@ func New(config *Config, logger *zap.Logger) (*DB, error) {
 	}
 }
 
-func newMySQL(config *Config, logger *zap.Logger) (*DB, error) {
+func newMySQL(config *Config, logger *zap.Logger) (*Driver, error) {
 	mysqlConfig := mysql.Config{
 		User:   config.Username,
 		Passwd: config.Password,
@@ -41,7 +41,7 @@ func newMySQL(config *Config, logger *zap.Logger) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &DB{
+	return &Driver{
 		db:  db,
 		log: logger,
 	}, err

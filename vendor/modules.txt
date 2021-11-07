@@ -8,6 +8,9 @@ github.com/envoyproxy/protoc-gen-validate/validate
 # github.com/go-sql-driver/mysql v1.5.0
 ## explicit; go 1.10
 github.com/go-sql-driver/mysql
+# github.com/golang-jwt/jwt/v4 v4.1.0
+## explicit; go 1.15
+github.com/golang-jwt/jwt/v4
 # github.com/golang/protobuf v1.5.0
 ## explicit; go 1.9
 github.com/golang/protobuf/proto
