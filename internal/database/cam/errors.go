@@ -1,6 +1,8 @@
 package cam
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ErrorBeginTransaction struct {
 	msg string

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	cam "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
-
 	"github.com/golang-jwt/jwt/v4"
 )
 

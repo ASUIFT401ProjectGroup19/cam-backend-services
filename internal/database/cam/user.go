@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 
-	"github.com/go-sql-driver/mysql"
-	"golang.org/x/crypto/bcrypt"
-
 	cam "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
+	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func CheckPassword(user *cam.User, password string) error {

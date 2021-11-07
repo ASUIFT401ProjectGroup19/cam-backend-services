@@ -1,10 +1,9 @@
 package cam
 
 import (
-	"go.uber.org/zap"
-
 	"github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
 type Config struct {

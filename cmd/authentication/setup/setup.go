@@ -5,17 +5,15 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/authmw"
-
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
-
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
-
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
+
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/authmw"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 )
 
 const (

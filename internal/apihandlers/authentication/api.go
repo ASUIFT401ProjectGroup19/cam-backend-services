@@ -3,14 +3,15 @@ package authentication
 import (
 	"context"
 
-	driver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
-	tm "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 	authenticationAPIv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/authentication/v1"
 	cam "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	driver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
+	tm "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 )
 
 type Config struct{}

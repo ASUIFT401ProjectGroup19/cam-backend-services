@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/cmd/authentication/setup"
 	"google.golang.org/grpc/reflection"
+
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/cmd/authentication/setup"
 )
 
 func main() {

@@ -3,10 +3,10 @@ package authmw
 import (
 	"context"
 
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
-	"google.golang.org/grpc"
 )
 
 type AuthInterceptor struct {
