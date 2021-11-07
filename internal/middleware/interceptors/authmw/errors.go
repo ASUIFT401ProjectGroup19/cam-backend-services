@@ -1,6 +1,8 @@
 package authmw
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ErrorAuthHeader struct {
 	msg string
