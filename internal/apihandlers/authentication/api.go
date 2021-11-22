@@ -18,31 +18,35 @@ type Config struct{}
 
 type APIv1 struct {
 	authenticationAPIv1.UnimplementedAuthenticationServiceServer
-	db  *driver.Driver
-	log *zap.Logger
-	tm  *tm.TokenManager
+	driver *driver.Driver
+	log    *zap.Logger
+	tm     *tm.TokenManager
 }
 
-func New(config *Config, db *driver.Driver, log *zap.Logger, tm *tm.TokenManager) *APIv1 {
+func New(config *Config, dr *driver.Driver, log *zap.Logger, tm *tm.TokenManager) *APIv1 {
 	return &APIv1{
-		db:  db,
-		log: log,
-		tm:  tm,
+		driver: dr,
+		log:    log,
+		tm:     tm,
 	}
 }
 
-func (a *APIv1) CreateAccount(ctx context.Context, request *authenticationAPIv1.CreateAccountRequest) (*authenticationAPIv1.CreateAccountResponse, error) {
+func (a *APIv1) CreateAccount(
+	ctx context.Context,
+	request *authenticationAPIv1.CreateAccountRequest,
+) (*authenticationAPIv1.CreateAccountResponse, error) {
 	if err := request.ValidateAll(); err != nil {
 		a.log.Error("validating request", zap.Error(err))
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
-	user := &cam.User{
-		FirstName: request.GetFirstName(),
-		LastName:  request.GetLastName(),
-		Email:     request.GetUserName(),
-		Password:  request.GetPassword(),
-	}
-	err := a.db.SetUser(user)
+	err := a.driver.CreateUser(
+		&cam.User{
+			FirstName: request.GetFirstName(),
+			LastName:  request.GetLastName(),
+			Email:     request.GetUserName(),
+			Password:  request.GetPassword(),
+		},
+	)
 	switch err.(type) {
 	case *driver.ErrorBeginTransaction:
 		return nil, status.Error(codes.Internal, err.Error())
@@ -60,8 +64,11 @@ func (a *APIv1) CreateAccount(ctx context.Context, request *authenticationAPIv1.
 	}, nil
 }
 
-func (a *APIv1) Login(ctx context.Context, request *authenticationAPIv1.LoginRequest) (*authenticationAPIv1.LoginResponse, error) {
-	user, err := a.db.GetUser(request.GetUserName())
+func (a *APIv1) Login(
+	ctx context.Context,
+	request *authenticationAPIv1.LoginRequest,
+) (*authenticationAPIv1.LoginResponse, error) {
+	user, err := a.driver.RetrieveUser(request.GetUserName())
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
@@ -83,3 +90,5 @@ func (a *APIv1) Close() {}
 func (a *APIv1) RegisterAPIServer(server *grpc.Server) {
 	authenticationAPIv1.RegisterAuthenticationServiceServer(server, a)
 }
+
+func (a *APIv1) GetProtectedRoutes() []string { return nil }

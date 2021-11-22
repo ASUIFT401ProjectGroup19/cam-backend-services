@@ -10,9 +10,9 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
+	authHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/authmw"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/auth"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 )
 
@@ -21,7 +21,7 @@ const (
 )
 
 type Config struct {
-	Auth         *authentication.Config
+	Auth         *authHandler.Config
 	DB           *cam.Config
 	TokenManager *tokenmanager.Config
 	Port         string `default:"10000"`
@@ -30,6 +30,7 @@ type Config struct {
 type Handler interface {
 	Close()
 	RegisterAPIServer(*grpc.Server)
+	GetProtectedRoutes() []string
 }
 
 func GetConfig() (*Config, error) {
@@ -77,7 +78,7 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 	}
 
 	handlers := []Handler{
-		authentication.New(config.Auth, db, logger, tm),
+		authHandler.New(config.Auth, db, logger, tm),
 	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.Port))
@@ -85,7 +86,7 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
-	authInterceptor := authmw.New(tm)
+	authInterceptor := auth.New(tm)
 
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		authInterceptor.Unary(),
@@ -102,6 +103,7 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 
 	for _, handler := range handlers {
 		handler.RegisterAPIServer(server)
+		authInterceptor.RegisterProtectedRoutes(handler.GetProtectedRoutes())
 	}
 
 	closeHandlers := func() {

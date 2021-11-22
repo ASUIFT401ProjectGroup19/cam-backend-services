@@ -18,15 +18,7 @@ func CheckPassword(user *cam.User, password string) error {
 	return nil
 }
 
-func (d *Driver) GetUser(username string) (*cam.User, error) {
-	u, err := cam.UserByEmail(context.Background(), d.db, username)
-	if err != nil {
-		return nil, &ErrorUserRetrieval{msg: err.Error()}
-	}
-	return u, nil
-}
-
-func (d *Driver) SetUser(user *cam.User) error {
+func (d *Driver) CreateUser(user *cam.User) error {
 	hash, err := encrypt(user.Password)
 	if err != nil {
 		return &ErrorEncryptPassword{msg: err.Error()}
@@ -56,6 +48,17 @@ func (d *Driver) SetUser(user *cam.User) error {
 		return nil
 	}
 }
+
+func (d *Driver) RetrieveUser(username string) (*cam.User, error) {
+	u, err := cam.UserByEmail(context.Background(), d.db, username)
+	if err != nil {
+		return nil, &ErrorUserRetrieval{msg: err.Error()}
+	}
+	return u, nil
+}
+
+// func UpdateUser
+// func DeleteUser
 
 func encrypt(password string) (string, error) {
 	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
