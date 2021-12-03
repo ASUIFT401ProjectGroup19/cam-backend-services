@@ -3,7 +3,7 @@ module github.com/ASUIFT401ProjectGroup19/cam-backend-services
 go 1.17
 
 require (
-	github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211029005622-eb65356d0858
+	github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211203232228-bc3b923dde9f
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/jmoiron/sqlx v1.3.4

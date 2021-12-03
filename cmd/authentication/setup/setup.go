@@ -10,9 +10,12 @@ import (
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/adapters/persistence/camadapter"
 	authHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
+	postHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/post"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/auth"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/validation"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 )
 
@@ -25,12 +28,13 @@ type Config struct {
 	DB           *cam.Config
 	TokenManager *tokenmanager.Config
 	Port         string `default:"10000"`
+	Post         *postHandler.Config
 }
 
 type Handler interface {
 	Close()
+	GetProtectedRPCs() []string
 	RegisterAPIServer(*grpc.Server)
-	GetProtectedRoutes() []string
 }
 
 func GetConfig() (*Config, error) {
@@ -67,7 +71,7 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
-	db, err := cam.New(config.DB, logger)
+	databaseDriver, err := cam.New(config.DB, logger)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -77,8 +81,11 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
+	persistenceAdapter := camadapter.New(databaseDriver)
+
 	handlers := []Handler{
-		authHandler.New(config.Auth, db, logger, tm),
+		authHandler.New(config.Auth, persistenceAdapter, logger, tm),
+		postHandler.New(config.Post, persistenceAdapter, logger),
 	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.Port))
@@ -87,13 +94,16 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 	}
 
 	authInterceptor := auth.New(tm)
+	validationInterceptor := validation.New()
 
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
 		authInterceptor.Unary(),
+		validationInterceptor.Unary(),
 	}
 
 	streamInterceptors := []grpc.StreamServerInterceptor{
 		authInterceptor.Stream(),
+		validationInterceptor.Stream(),
 	}
 
 	server := grpc.NewServer(
@@ -103,7 +113,7 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 
 	for _, handler := range handlers {
 		handler.RegisterAPIServer(server)
-		authInterceptor.RegisterProtectedRoutes(handler.GetProtectedRoutes())
+		authInterceptor.RegisterProtectedRoutes(handler.GetProtectedRPCs())
 	}
 
 	closeHandlers := func() {

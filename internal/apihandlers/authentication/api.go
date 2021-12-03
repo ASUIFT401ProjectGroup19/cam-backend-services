@@ -2,32 +2,42 @@ package authentication
 
 import (
 	"context"
+	"fmt"
 
 	authenticationAPIv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/authentication/v1"
-	cam "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	driver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errors"
 	tm "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/models"
 )
+
+type Storage interface {
+	CheckPassword(username, password string) (*models.User, error)
+	CreateUser(*models.User) (*models.User, error)
+	RetrieveUserByID(int) (*models.User, error)
+	RetrieveUserByUserName(string) (*models.User, error)
+}
 
 type Config struct{}
 
 type APIv1 struct {
 	authenticationAPIv1.UnimplementedAuthenticationServiceServer
-	driver *driver.Driver
-	log    *zap.Logger
-	tm     *tm.TokenManager
+	log           *zap.Logger
+	protectedRPCs map[string]string
+	session       *tm.TokenManager
+	storage       Storage
 }
 
-func New(config *Config, dr *driver.Driver, log *zap.Logger, tm *tm.TokenManager) *APIv1 {
+func New(config *Config, s Storage, log *zap.Logger, tm *tm.TokenManager) *APIv1 {
 	return &APIv1{
-		driver: dr,
-		log:    log,
-		tm:     tm,
+		log:           log,
+		protectedRPCs: make(map[string]string),
+		storage:       s,
+		session:       tm,
 	}
 }
 
@@ -35,12 +45,8 @@ func (a *APIv1) CreateAccount(
 	ctx context.Context,
 	request *authenticationAPIv1.CreateAccountRequest,
 ) (*authenticationAPIv1.CreateAccountResponse, error) {
-	if err := request.ValidateAll(); err != nil {
-		a.log.Error("validating request", zap.Error(err))
-		return nil, status.Error(codes.InvalidArgument, err.Error())
-	}
-	err := a.driver.CreateUser(
-		&cam.User{
+	_, err := a.storage.CreateUser(
+		&models.User{
 			FirstName: request.GetFirstName(),
 			LastName:  request.GetLastName(),
 			Email:     request.GetUserName(),
@@ -48,35 +54,32 @@ func (a *APIv1) CreateAccount(
 		},
 	)
 	switch err.(type) {
-	case *driver.ErrorBeginTransaction:
-		return nil, status.Error(codes.Internal, err.Error())
-	case *driver.ErrorEncryptPassword:
-		return nil, status.Error(codes.Internal, err.Error())
-	case *driver.ErrorExists:
-		return nil, status.Error(codes.AlreadyExists, err.Error())
-	case *driver.ErrorInsertRecord:
-		return nil, status.Error(codes.Internal, err.Error())
-	case *driver.ErrorUnknown:
+	default:
 		return nil, status.Error(codes.Unknown, err.Error())
+	case *errors.BeginTransaction:
+		return nil, status.Error(codes.Internal, err.Error())
+	case *errors.EncryptPassword:
+		return nil, status.Error(codes.Internal, err.Error())
+	case *errors.Exists:
+		return nil, status.Error(codes.AlreadyExists, err.Error())
+	case *errors.InsertRecord:
+		return nil, status.Error(codes.Internal, err.Error())
+	case nil:
+		return &authenticationAPIv1.CreateAccountResponse{
+			Success: true,
+		}, nil
 	}
-	return &authenticationAPIv1.CreateAccountResponse{
-		Success: true,
-	}, nil
 }
 
 func (a *APIv1) Login(
 	ctx context.Context,
 	request *authenticationAPIv1.LoginRequest,
 ) (*authenticationAPIv1.LoginResponse, error) {
-	user, err := a.driver.RetrieveUser(request.GetUserName())
+	user, err := a.storage.CheckPassword(request.GetUserName(), request.GetPassword())
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
-	err = driver.CheckPassword(user, request.GetPassword())
-	if err != nil {
-		return nil, status.Error(codes.PermissionDenied, err.Error())
-	}
-	token, err := a.tm.Generate(user)
+	token, err := a.session.Generate(user)
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
 	}
@@ -91,4 +94,18 @@ func (a *APIv1) RegisterAPIServer(server *grpc.Server) {
 	authenticationAPIv1.RegisterAuthenticationServiceServer(server, a)
 }
 
-func (a *APIv1) GetProtectedRoutes() []string { return nil }
+func (a *APIv1) GetProtectedRPCs() []string {
+	protected := make([]string, len(a.protectedRPCs))
+	for _, v := range a.protectedRPCs {
+		protected = append(protected, v)
+	}
+	return protected
+}
+
+func (a *APIv1) requireAuth(rpcName string) {
+	a.protectedRPCs[rpcName] = fmt.Sprintf(
+		"/%s/%s",
+		authenticationAPIv1.AuthenticationService_ServiceDesc.ServiceName,
+		rpcName,
+	)
+}
