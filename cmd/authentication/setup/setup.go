@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"net"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/camdb"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
+
+	authHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/auth"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 )
 
 const (
@@ -18,14 +21,16 @@ const (
 )
 
 type Config struct {
-	Auth *authentication.Config
-	DB   *camdb.Config
-	Port string `default:"10000"`
+	Auth         *authHandler.Config
+	DB           *cam.Config
+	TokenManager *tokenmanager.Config
+	Port         string `default:"10000"`
 }
 
 type Handler interface {
 	Close()
 	RegisterAPIServer(*grpc.Server)
+	GetProtectedRoutes() []string
 }
 
 func GetConfig() (*Config, error) {
@@ -62,13 +67,18 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
-	db, err := camdb.New(config.DB, logger)
+	db, err := cam.New(config.DB, logger)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	tm, err := tokenmanager.New(config.TokenManager)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	handlers := []Handler{
-		authentication.New(config.Auth, db, logger),
+		authHandler.New(config.Auth, db, logger, tm),
 	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.Port))
@@ -76,10 +86,24 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
-	server := grpc.NewServer()
+	authInterceptor := auth.New(tm)
+
+	unaryInterceptors := []grpc.UnaryServerInterceptor{
+		authInterceptor.Unary(),
+	}
+
+	streamInterceptors := []grpc.StreamServerInterceptor{
+		authInterceptor.Stream(),
+	}
+
+	server := grpc.NewServer(
+		grpc.ChainUnaryInterceptor(unaryInterceptors...),
+		grpc.ChainStreamInterceptor(streamInterceptors...),
+	)
 
 	for _, handler := range handlers {
 		handler.RegisterAPIServer(server)
+		authInterceptor.RegisterProtectedRoutes(handler.GetProtectedRoutes())
 	}
 
 	closeHandlers := func() {

@@ -1,6 +1,8 @@
-package camdb
+package cam
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type ErrorBeginTransaction struct {
 	msg string
@@ -34,6 +36,14 @@ func (e *ErrorInsertRecord) Error() string {
 	return fmt.Sprintf("insert record: %s", e.msg)
 }
 
+type ErrorPasswordCheck struct {
+	msg string
+}
+
+func (e *ErrorPasswordCheck) Error() string {
+	return fmt.Sprintf("password check: %s", e.msg)
+}
+
 type ErrorUnknown struct {
 	msg string
 }
@@ -48,4 +58,12 @@ type ErrorUnsupportedDriver struct {
 
 func (e *ErrorUnsupportedDriver) Error() string {
 	return fmt.Sprintf("unsupported driver: %s", e.msg)
+}
+
+type ErrorUserRetrieval struct {
+	msg string
+}
+
+func (e *ErrorUserRetrieval) Error() string {
+	return fmt.Sprintf("user not found: %s", e.msg)
 }

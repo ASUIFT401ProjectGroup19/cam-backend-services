@@ -4,12 +4,13 @@ go 1.17
 
 require (
 	github.com/ASUIFT401ProjectGroup19/cam-common v0.0.0-20211029005622-eb65356d0858
-	github.com/go-sql-driver/mysql v1.5.0
+	github.com/go-sql-driver/mysql v1.6.0
+	github.com/golang-jwt/jwt/v4 v4.1.0
 	github.com/jmoiron/sqlx v1.3.4
 	github.com/kelseyhightower/envconfig v1.4.0
 	go.uber.org/zap v1.19.1
-	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
-	google.golang.org/grpc v1.41.0
+	golang.org/x/crypto v0.0.0-20211117183948-ae814b36b871
+	google.golang.org/grpc v1.42.0
 )
 
 require (
@@ -17,9 +18,9 @@ require (
 	github.com/golang/protobuf v1.5.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
-	golang.org/x/sys v0.0.0-20210510120138-977fb7262007 // indirect
-	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
+	golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1 // indirect
+	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 )

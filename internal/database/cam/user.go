@@ -1,17 +1,24 @@
-package camdb
+package cam
 
 import (
 	"context"
 	"database/sql"
 
-	"github.com/go-sql-driver/mysql"
-	"golang.org/x/crypto/bcrypt"
-
 	cam "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
+	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 )
 
-func (d *DB) SetUser(user *cam.User) error {
+func CheckPassword(user *cam.User, password string) error {
+	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return &ErrorPasswordCheck{msg: err.Error()}
+	}
+	return nil
+}
+
+func (d *Driver) CreateUser(user *cam.User) error {
 	hash, err := encrypt(user.Password)
 	if err != nil {
 		return &ErrorEncryptPassword{msg: err.Error()}
@@ -42,8 +49,19 @@ func (d *DB) SetUser(user *cam.User) error {
 	}
 }
 
-func encrypt(s string) (string, error) {
-	hash, err := bcrypt.GenerateFromPassword([]byte(s), bcrypt.DefaultCost)
+func (d *Driver) RetrieveUser(username string) (*cam.User, error) {
+	u, err := cam.UserByEmail(context.Background(), d.db, username)
+	if err != nil {
+		return nil, &ErrorUserRetrieval{msg: err.Error()}
+	}
+	return u, nil
+}
+
+// func UpdateUser
+// func DeleteUser
+
+func encrypt(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
