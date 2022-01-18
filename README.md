@@ -5,7 +5,7 @@ This module relies on imports from another repository in this private organizati
 - Add an ssh key to your account under `Settings > SSH and GPG keys`
 - Add the organization to GOPRIVATE to bypass go mod proxy
 
-    ```go end -w GOPRIVATE=github.com/ASUIFT401ProjectGroup19```
+    ```go env -w GOPRIVATE=github.com/ASUIFT401ProjectGroup19```
 - Update git config to redirect https to ssh
 
     ```git config --global url."git@github.com:ASUIFT401ProjectGroup19".insteadOf https://github.com/ASUIFT401ProjectGroup19```
