@@ -12,10 +12,10 @@ sync-mods:
 	go mod vendor
 
 build: sync-mods
-	CGO_ENABLED=0 GOOS=linux go build -o .bin/authserver ./cmd/authentication/
+	CGO_ENABLED=0 GOOS=linux go build -o .bin/server ./cmd/
 
 image: sync-mods
-	docker build -t backend/authentication .
+	docker build -t backend/server .
 
 debug: sync-mods
 	docker compose up debug-auth -d

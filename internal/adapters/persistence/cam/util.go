@@ -1,4 +1,4 @@
-package camadapter
+package cam
 
 import (
 	"database/sql"

@@ -1,12 +1,14 @@
 package tokenmanager
 
 import (
+	"context"
+	"errors"
 	"reflect"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errors"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errs"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/models"
 )
 
@@ -32,11 +34,11 @@ func New(config *Config) (*TokenManager, error) {
 	case "HS256":
 		method = jwt.SigningMethodHS256
 	default:
-		return nil, &errors.UnsupportedSigningMethod{Message: config.SigningMethod}
+		return nil, &errs.UnsupportedSigningMethod{Message: config.SigningMethod}
 	}
 	duration, err := time.ParseDuration(config.ValidDuration)
 	if err != nil {
-		return nil, &errors.ParseDuration{Message: err.Error()}
+		return nil, &errs.ParseDuration{Message: err.Error()}
 	}
 	return &TokenManager{
 		secretKey:     config.SecretKey,
@@ -62,17 +64,24 @@ func (t *TokenManager) Validate(rawToken string) (*UserClaims, error) {
 		&UserClaims{},
 		func(token *jwt.Token) (interface{}, error) {
 			if reflect.TypeOf(token.Method) == reflect.TypeOf(t.signingMethod) {
-				return t.secretKey, nil
+				return []byte(t.secretKey), nil
 			}
-			return nil, &errors.TokenSigningMethodMismatch{Message: token.Method.Alg()}
+			return nil, &errs.TokenSigningMethodMismatch{Message: token.Method.Alg()}
 		},
 	)
 	if err != nil {
-		return nil, &errors.ParseToken{Message: err.Error()}
+		return nil, &errs.ParseToken{Message: err.Error()}
 	}
 	userClaims, ok := token.Claims.(*UserClaims)
 	if !ok {
-		return nil, &errors.InvalidClaims{Message: "could not load UserClaims from token"}
+		return nil, &errs.InvalidClaims{Message: "could not load UserClaims from token"}
 	}
 	return userClaims, nil
+}
+
+func (t *TokenManager) GetUsernameFromContext(ctx context.Context) (string, error) {
+	if claims, ok := ctx.Value("claims").(*UserClaims); ok {
+		return claims.Subject, nil
+	}
+	return "", errors.New("placeholder")
 }

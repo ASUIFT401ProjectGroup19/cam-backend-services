@@ -1,11 +1,11 @@
-package camadapter
+package cam
 
 import (
 	camDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/models"
 )
 
-// Adapter implements authentication.Storage.
+// Adapter implements identity.Storage.
 // Adapter implements post.Storage.
 type Adapter struct {
 	driver *camDriver.Driver

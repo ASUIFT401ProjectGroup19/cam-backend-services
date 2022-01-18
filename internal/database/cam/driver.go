@@ -5,7 +5,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errors"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errs"
 )
 
 type Config struct {
@@ -26,7 +26,7 @@ func New(config *Config, logger *zap.Logger) (*Driver, error) {
 	case "mysql":
 		return newMySQL(config, logger)
 	default:
-		return nil, &errors.UnsupportedDriver{Message: config.Driver}
+		return nil, &errs.UnsupportedDriver{Message: config.Driver}
 	}
 }
 

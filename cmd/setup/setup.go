@@ -1,19 +1,27 @@
 package setup
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/servers/identity"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/servers/post"
+	identityGatewayv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
+	postGatewayv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"google.golang.org/grpc/credentials/insecure"
 	"net"
+	"net/http"
 
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/adapters/persistence/camadapter"
-	authHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/authentication"
+	storageAdapter "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/adapters/persistence/cam"
+	authHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/identity"
 	postHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/post"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
+	camDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/auth"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/validation"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
@@ -25,10 +33,11 @@ const (
 
 type Config struct {
 	Auth         *authHandler.Config
-	DB           *cam.Config
-	TokenManager *tokenmanager.Config
+	DB           *camDriver.Config
 	Port         string `default:"10000"`
 	Post         *postHandler.Config
+	RestPort     string `default:"11000"`
+	TokenManager *tokenmanager.Config
 }
 
 type Handler interface {
@@ -53,10 +62,10 @@ func GetConfig() (*Config, error) {
 	return config, nil
 }
 
-func NewServer() (net.Listener, *grpc.Server, func(), error) {
+func NewServer() (net.Listener, *grpc.Server, func(), func(), error) {
 	config, err := GetConfig()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	logger, err := zap.Config{
@@ -68,32 +77,35 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		OutputPaths: []string{"stdout"},
 	}.Build()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	databaseDriver, err := cam.New(config.DB, logger)
+	databaseDriver, err := camDriver.New(config.DB, logger)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	tm, err := tokenmanager.New(config.TokenManager)
+	session, err := tokenmanager.New(config.TokenManager)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	persistenceAdapter := camadapter.New(databaseDriver)
+	storage := storageAdapter.New(databaseDriver)
+
+	identityServer := identity.New(session, storage)
+	postServer := post.New(session, storage)
 
 	handlers := []Handler{
-		authHandler.New(config.Auth, persistenceAdapter, logger, tm),
-		postHandler.New(config.Post, persistenceAdapter, logger),
+		authHandler.New(config.Auth, identityServer, logger),
+		postHandler.New(config.Post, postServer, logger),
 	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.Port))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
-	authInterceptor := auth.New(tm)
+	authInterceptor := auth.New(session)
 	validationInterceptor := validation.New()
 
 	unaryInterceptors := []grpc.UnaryServerInterceptor{
@@ -122,5 +134,19 @@ func NewServer() (net.Listener, *grpc.Server, func(), error) {
 		}
 	}
 
-	return listener, server, closeHandlers, nil
+	mux := runtime.NewServeMux()
+	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	if err := identityGatewayv1.RegisterIdentityServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+		panic(err)
+	}
+	if err := postGatewayv1.RegisterPostServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+		panic(err)
+	}
+	gateway := func() {
+		if err := http.ListenAndServe(fmt.Sprintf(":%s", config.RestPort), mux); err != nil {
+			panic(err)
+		}
+	}
+
+	return listener, server, closeHandlers, gateway, nil
 }

@@ -3,37 +3,30 @@ package post
 import (
 	"context"
 	"fmt"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/servers/post"
 
-	postv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
+	postAPIv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/models"
 )
-
-type Storage interface {
-	CreateMedia(*models.Media) (*models.Media, error)
-	CreatePost(*models.Post) (*models.Post, error)
-	RetrievePostByID(int) (*models.Post, error)
-	RetrieveUserByUserName(string) (*models.User, error)
-}
 
 type Config struct{}
 
 type APIv1 struct {
-	postv1.UnimplementedPostServiceServer
+	postAPIv1.UnimplementedPostServiceServer
 	log           *zap.Logger
-	storage       Storage
+	server        *post.Server
 	protectedRPCs map[string]string
 }
 
-func New(config *Config, s Storage, log *zap.Logger) *APIv1 {
+func New(config *Config, s *post.Server, log *zap.Logger) *APIv1 {
 	a := &APIv1{
 		log:           log,
-		storage:       s,
+		server:        s,
 		protectedRPCs: make(map[string]string),
 	}
 	a.requireAuth("Create")
@@ -43,49 +36,40 @@ func New(config *Config, s Storage, log *zap.Logger) *APIv1 {
 	return a
 }
 
-func (a *APIv1) Create(ctx context.Context, req *postv1.CreateRequest) (*postv1.CreateResponse, error) {
-	claims := ctx.Value("claims").(*tokenmanager.UserClaims)
-	user, err := a.storage.RetrieveUserByUserName(claims.Subject)
-	postReq := req.GetPost()
-	mediaReq := req.GetPost().GetMedia()
-	post, err := a.storage.CreatePost(
+func (a *APIv1) Create(ctx context.Context, req *postAPIv1.CreateRequest) (*postAPIv1.CreateResponse, error) {
+	p, _, err := a.server.Create(ctx,
 		&models.Post{
-			Description: postReq.GetDescription(),
-			UserID:      user.ID,
+			Description: req.GetPost().GetDescription(),
 		},
-	)
-	_, _ = a.storage.CreateMedia(
 		&models.Media{
-			Link:   mediaReq.GetLink(),
-			PostID: post.ID,
-		},
-	)
+			Link: req.GetPost().GetMedia().GetLink(),
+		})
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Internal, err.Error())
 	case nil:
-		return &postv1.CreateResponse{
-			Id: int32(post.ID),
+		return &postAPIv1.CreateResponse{
+			Id: int32(p.ID),
 		}, nil
 	}
 }
 
-func (a *APIv1) Read(context.Context, *postv1.ReadRequest) (*postv1.ReadResponse, error) {
-	return nil, nil
+func (a *APIv1) Read(context.Context, *postAPIv1.ReadRequest) (*postAPIv1.ReadResponse, error) {
+	return &postAPIv1.ReadResponse{}, nil
 }
 
-func (a *APIv1) Update(context.Context, *postv1.UpdateRequest) (*postv1.UpdateResponse, error) {
-	return nil, nil
+func (a *APIv1) Update(context.Context, *postAPIv1.UpdateRequest) (*postAPIv1.UpdateResponse, error) {
+	return &postAPIv1.UpdateResponse{}, nil
 }
 
-func (a *APIv1) Delete(context.Context, *postv1.DeleteRequest) (*postv1.DeleteResponse, error) {
-	return nil, nil
+func (a *APIv1) Delete(context.Context, *postAPIv1.DeleteRequest) (*postAPIv1.DeleteResponse, error) {
+	return &postAPIv1.DeleteResponse{}, nil
 }
 
 func (a *APIv1) Close() {}
 
 func (a *APIv1) RegisterAPIServer(server *grpc.Server) {
-	postv1.RegisterPostServiceServer(server, a)
+	postAPIv1.RegisterPostServiceServer(server, a)
 }
 
 func (a *APIv1) GetProtectedRPCs() []string {
@@ -99,7 +83,7 @@ func (a *APIv1) GetProtectedRPCs() []string {
 func (a *APIv1) requireAuth(rpcName string) {
 	a.protectedRPCs[rpcName] = fmt.Sprintf(
 		"/%s/%s",
-		postv1.PostService_ServiceDesc.ServiceName,
+		postAPIv1.PostService_ServiceDesc.ServiceName,
 		rpcName,
 	)
 }

@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errors"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errs"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 )
 
@@ -65,16 +65,16 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 func (i *Interceptor) check(ctx context.Context) (*tokenmanager.UserClaims, error) {
 	metaData, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
-		return nil, &errors.Metadata{Message: "failed to load metadata from incoming context"}
+		return nil, &errs.Metadata{Message: "failed to load metadata from incoming context"}
 	}
 	authValues := metaData["authorization"]
 	if len(authValues) < 1 {
-		return nil, &errors.AuthHeader{Message: "unable to parse auth header from incoming context"}
+		return nil, &errs.AuthHeader{Message: "unable to parse auth header from incoming context"}
 	}
 	// Do something with claims here eventually
 	claims, err := i.tokenManager.Validate(authValues[0])
 	if err != nil {
-		return nil, &errors.TokenValidation{Message: err.Error()}
+		return nil, &errs.TokenValidation{Message: err.Error()}
 	}
 	return claims, nil
 }
