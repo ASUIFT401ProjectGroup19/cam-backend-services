@@ -1,11 +1,15 @@
 package tokenmanager
 
 import (
+	"context"
+	"errors"
 	"reflect"
 	"time"
 
-	cam "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
 	"github.com/golang-jwt/jwt/v4"
+
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errs"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/models"
 )
 
 type Config struct {
@@ -30,11 +34,11 @@ func New(config *Config) (*TokenManager, error) {
 	case "HS256":
 		method = jwt.SigningMethodHS256
 	default:
-		return nil, &ErrorUnsupportedSigningMethod{msg: config.SigningMethod}
+		return nil, &errs.UnsupportedSigningMethod{Message: config.SigningMethod}
 	}
 	duration, err := time.ParseDuration(config.ValidDuration)
 	if err != nil {
-		return nil, &ErrorParseDuration{msg: err.Error()}
+		return nil, &errs.ParseDuration{Message: err.Error()}
 	}
 	return &TokenManager{
 		secretKey:     config.SecretKey,
@@ -43,7 +47,7 @@ func New(config *Config) (*TokenManager, error) {
 	}, nil
 }
 
-func (t *TokenManager) Generate(user *cam.User) (string, error) {
+func (t *TokenManager) Generate(user *models.User) (string, error) {
 	claims := &UserClaims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.Email,
@@ -60,17 +64,24 @@ func (t *TokenManager) Validate(rawToken string) (*UserClaims, error) {
 		&UserClaims{},
 		func(token *jwt.Token) (interface{}, error) {
 			if reflect.TypeOf(token.Method) == reflect.TypeOf(t.signingMethod) {
-				return t.secretKey, nil
+				return []byte(t.secretKey), nil
 			}
-			return nil, &ErrorTokenSigningMethodMismatch{msg: token.Method.Alg()}
+			return nil, &errs.TokenSigningMethodMismatch{Message: token.Method.Alg()}
 		},
 	)
 	if err != nil {
-		return nil, &ErrorParseToken{msg: err.Error()}
+		return nil, &errs.ParseToken{Message: err.Error()}
 	}
 	userClaims, ok := token.Claims.(*UserClaims)
 	if !ok {
-		return nil, &ErrorInvalidClaims{msg: "could not load UserClaims from token"}
+		return nil, &errs.InvalidClaims{Message: "could not load UserClaims from token"}
 	}
 	return userClaims, nil
+}
+
+func (t *TokenManager) GetUsernameFromContext(ctx context.Context) (string, error) {
+	if claims, ok := ctx.Value("claims").(*UserClaims); ok {
+		return claims.Subject, nil
+	}
+	return "", errors.New("placeholder")
 }

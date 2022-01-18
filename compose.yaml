@@ -9,15 +9,16 @@ services:
       SERVICE_DB_PASSWORD: localpassword
       SERVICE_TOKENMANAGER_SECRETKEY: secret
       SERVICE_TOKENMANAGER_SIGNINGMETHOD: HS256
-      SERVICE_TOKENMANAGER_VALIDDURATION: 1m
+      SERVICE_TOKENMANAGER_VALIDDURATION: 5m
     networks:
     - compose-proxy
     ports:
     - 10000:10000
+    - 11000:11000
     restart: always
 
   debug-auth:
-    command: dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient cmd/authentication/main.go
+    command: dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient cmd/main.go
     build:
       dockerfile: debug.Dockerfile
     environment:
@@ -27,14 +28,16 @@ services:
       SERVICE_DB_USERNAME: root
       SERVICE_DB_PASSWORD: localpassword
       SERVICE_PORT: 10001
+      SERVICE_RESTPORT: 11001
       SERVICE_TOKENMANAGER_SECRETKEY: secret
       SERVICE_TOKENMANAGER_SIGNINGMETHOD: HS256
-      SERVICE_TOKENMANAGER_VALIDDURATION: 1m
+      SERVICE_TOKENMANAGER_VALIDDURATION: 3000s
     networks:
     - compose-proxy
     ports:
     - 2345:2345
     - 10001:10001
+    - 11001:11001
     restart: always
     volumes:
     - .:/src

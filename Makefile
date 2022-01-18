@@ -7,16 +7,20 @@ tools:
 	mkdir -p $(TOOLDIR)
 	go install github.com/fullstorydev/grpcurl/cmd/grpcurl@latest
 
-build:
-	CGO_ENABLED=0 GOOS=linux go build -o .bin/authserver ./cmd/authentication/
+sync-mods:
+	go mod tidy
+	go mod vendor
 
-image:
-	docker build -t backend/authentication .
+build: sync-mods
+	CGO_ENABLED=0 GOOS=linux go build -o .bin/server ./cmd/
 
-debug:
+image: sync-mods
+	docker build -t backend/server .
+
+debug: sync-mods
 	docker compose up debug-auth -d
 
-run:
+run: sync-mods
 	docker compose up backend-auth -d --build
 
 stop:
