@@ -10,6 +10,7 @@ import (
 	postGatewayv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 	"net"
 	"net/http"
 
@@ -62,12 +63,7 @@ func GetConfig() (*Config, error) {
 	return config, nil
 }
 
-func NewServer() (net.Listener, *grpc.Server, func(), func(), error) {
-	config, err := GetConfig()
-	if err != nil {
-		return nil, nil, nil, nil, err
-	}
-
+func NewGRPCServer(config *Config) (net.Listener, *grpc.Server, func(), error) {
 	logger, err := zap.Config{
 		Level:    zap.NewAtomicLevelAt(zap.DebugLevel),
 		Encoding: "json",
@@ -77,17 +73,17 @@ func NewServer() (net.Listener, *grpc.Server, func(), func(), error) {
 		OutputPaths: []string{"stdout"},
 	}.Build()
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	databaseDriver, err := camDriver.New(config.DB, logger)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	session, err := tokenmanager.New(config.TokenManager)
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	storage := storageAdapter.New(databaseDriver)
@@ -102,7 +98,7 @@ func NewServer() (net.Listener, *grpc.Server, func(), func(), error) {
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.Port))
 	if err != nil {
-		return nil, nil, nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	authInterceptor := auth.New(session)
@@ -134,19 +130,28 @@ func NewServer() (net.Listener, *grpc.Server, func(), func(), error) {
 		}
 	}
 
-	mux := runtime.NewServeMux()
+	return listener, server, closeHandlers, nil
+}
+
+func NewHTTPServer(config *Config) (func(), error) {
+	corsMW := func(ctx context.Context, w http.ResponseWriter, resp proto.Message) error {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		return nil
+	}
+
+	mux := runtime.NewServeMux(runtime.WithForwardResponseOption(corsMW))
+
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	if err := identityGatewayv1.RegisterIdentityServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
-		panic(err)
+		return nil, err
 	}
 	if err := postGatewayv1.RegisterPostServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
-		panic(err)
+		return nil, err
 	}
 	gateway := func() {
 		if err := http.ListenAndServe(fmt.Sprintf(":%s", config.RestPort), mux); err != nil {
 			panic(err)
 		}
 	}
-
-	return listener, server, closeHandlers, gateway, nil
+	return gateway, nil
 }

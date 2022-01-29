@@ -11,7 +11,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/errs"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/models"
 )
 
@@ -25,11 +24,13 @@ type APIv1 struct {
 }
 
 func New(config *Config, s *identity.Server, log *zap.Logger) *APIv1 {
-	return &APIv1{
+	a := &APIv1{
 		log:           log,
 		protectedRPCs: make(map[string]string),
 		server:        s,
 	}
+	a.requireAuth("RefreshToken")
+	return a
 }
 
 func (a *APIv1) CreateAccount(
@@ -47,14 +48,6 @@ func (a *APIv1) CreateAccount(
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Unknown, err.Error())
-	case *errs.BeginTransaction:
-		return nil, status.Error(codes.Internal, err.Error())
-	case *errs.EncryptPassword:
-		return nil, status.Error(codes.Internal, err.Error())
-	case *errs.Exists:
-		return nil, status.Error(codes.AlreadyExists, err.Error())
-	case *errs.InsertRecord:
-		return nil, status.Error(codes.Internal, err.Error())
 	case nil:
 		return &identityAPIv1.CreateAccountResponse{
 			Success: true,
@@ -66,7 +59,11 @@ func (a *APIv1) Login(
 	ctx context.Context,
 	request *identityAPIv1.LoginRequest,
 ) (*identityAPIv1.LoginResponse, error) {
-	token, err := a.server.Login(request.GetUserName(), request.GetPassword())
+	user, err := a.server.Login(request.GetUserName(), request.GetPassword())
+	if err != nil {
+		return nil, status.Error(codes.PermissionDenied, "username/password combination not found")
+	}
+	token, err := a.server.GenerateToken(user)
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Unknown, err.Error())

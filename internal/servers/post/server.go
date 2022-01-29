@@ -14,6 +14,7 @@ type Storage interface {
 	CreatePost(*models.Post) (*models.Post, error)
 	RetrievePostByID(int) (*models.Post, error)
 	RetrieveUserByUserName(string) (*models.User, error)
+	RetrieveMediaByPostID(int) ([]*models.Media, error)
 }
 
 type Server struct {
@@ -28,12 +29,26 @@ func New(session Session, storage Storage) *Server {
 	}
 }
 
-func (s *Server) Create(ctx context.Context, post *models.Post, media *models.Media) (*models.Post, *models.Media, error) {
+func (s *Server) Create(ctx context.Context, post *models.Post, media []*models.Media) (*models.Post, error) {
 	username, _ := s.session.GetUsernameFromContext(ctx)
 	user, _ := s.storage.RetrieveUserByUserName(username)
 	post.UserID = user.ID
 	postResult, _ := s.storage.CreatePost(post)
-	media.PostID = postResult.ID
-	mediaResult, _ := s.storage.CreateMedia(media)
-	return postResult, mediaResult, nil
+	for k := range media {
+		media[k].PostID = postResult.ID
+		_, _ = s.storage.CreateMedia(media[k])
+	}
+	return postResult, nil
+}
+
+func (s *Server) Read(i int) (*models.Post, []*models.Media, error) {
+	post, err := s.storage.RetrievePostByID(i)
+	if err != nil {
+		return nil, nil, err
+	}
+	media, err := s.storage.RetrieveMediaByPostID(i)
+	if err != nil {
+		return nil, nil, err
+	}
+	return post, media, nil
 }

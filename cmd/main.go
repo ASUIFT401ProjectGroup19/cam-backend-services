@@ -6,11 +6,20 @@ import (
 )
 
 func main() {
-	listener, gRPCServer, closeHandlers, httpGateway, err := setup.NewServer()
+	config, err := setup.GetConfig()
 	if err != nil {
 		panic(err)
 	}
+	listener, gRPCServer, closeHandlers, err := setup.NewGRPCServer(config)
 	defer closeHandlers()
+	if err != nil {
+		panic(err)
+	}
+
+	httpGateway, err := setup.NewHTTPServer(config)
+	if err != nil {
+		panic(err)
+	}
 
 	reflection.Register(gRPCServer)
 

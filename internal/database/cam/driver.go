@@ -32,11 +32,12 @@ func New(config *Config, logger *zap.Logger) (*Driver, error) {
 
 func newMySQL(config *Config, logger *zap.Logger) (*Driver, error) {
 	mysqlConfig := mysql.Config{
-		User:   config.Username,
-		Passwd: config.Password,
-		Net:    "tcp",
-		Addr:   config.Host,
-		DBName: config.Database,
+		User:      config.Username,
+		Passwd:    config.Password,
+		Net:       "tcp",
+		Addr:      config.Host,
+		DBName:    config.Database,
+		ParseTime: true,
 	}
 	db, err := sqlx.Connect(config.Driver, mysqlConfig.FormatDSN())
 	if err != nil {

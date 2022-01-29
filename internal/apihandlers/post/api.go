@@ -37,13 +37,18 @@ func New(config *Config, s *post.Server, log *zap.Logger) *APIv1 {
 }
 
 func (a *APIv1) Create(ctx context.Context, req *postAPIv1.CreateRequest) (*postAPIv1.CreateResponse, error) {
-	p, _, err := a.server.Create(ctx,
+	media := make([]*models.Media, len(req.GetPost().GetMedia()))
+	for k, v := range req.GetPost().GetMedia() {
+		media[k] = &models.Media{
+			Link: v.GetLink(),
+		}
+	}
+	p, err := a.server.Create(ctx,
 		&models.Post{
 			Description: req.GetPost().GetDescription(),
 		},
-		&models.Media{
-			Link: req.GetPost().GetMedia().GetLink(),
-		})
+		media,
+	)
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Internal, err.Error())
@@ -54,8 +59,24 @@ func (a *APIv1) Create(ctx context.Context, req *postAPIv1.CreateRequest) (*post
 	}
 }
 
-func (a *APIv1) Read(context.Context, *postAPIv1.ReadRequest) (*postAPIv1.ReadResponse, error) {
-	return &postAPIv1.ReadResponse{}, nil
+func (a *APIv1) Read(ctx context.Context, req *postAPIv1.ReadRequest) (*postAPIv1.ReadResponse, error) {
+	postResponse, mediaResponse, err := a.server.Read(int(req.GetId()))
+	if err != nil {
+		return nil, err
+	}
+	media := make([]*postAPIv1.Media, len(mediaResponse))
+	for k, v := range mediaResponse {
+		media[k] = &postAPIv1.Media{
+			Link: v.Link,
+		}
+	}
+	return &postAPIv1.ReadResponse{
+		Post: &postAPIv1.Post{
+			Id:          int32(postResponse.ID),
+			Description: postResponse.Description,
+			Media:       media,
+		},
+	}, nil
 }
 
 func (a *APIv1) Update(context.Context, *postAPIv1.UpdateRequest) (*postAPIv1.UpdateResponse, error) {

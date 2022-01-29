@@ -1,6 +1,7 @@
 services:
   backend-auth:
-    build: .
+    build:
+      context: .
     environment:
       SERVICE_DB_DRIVER: mysql
       SERVICE_DB_HOST: database
@@ -20,6 +21,7 @@ services:
   debug-auth:
     command: dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient cmd/main.go
     build:
+      context: .
       dockerfile: debug.Dockerfile
     environment:
       SERVICE_DB_DRIVER: mysql
