@@ -33,6 +33,7 @@ func postDriverToModel(p *cam.Post) *models.Post {
 		ID:          p.PostID,
 		Description: p.Description.String,
 		UserID:      p.UserID,
+		Date:        p.Date,
 	}
 }
 

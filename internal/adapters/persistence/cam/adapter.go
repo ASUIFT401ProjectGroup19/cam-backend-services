@@ -11,6 +11,12 @@ type Adapter struct {
 	driver *camDriver.Driver
 }
 
+func New(driver *camDriver.Driver) *Adapter {
+	return &Adapter{
+		driver: driver,
+	}
+}
+
 func (a *Adapter) CheckPassword(username string, password string) (*models.User, error) {
 	user, err := a.driver.RetrieveUserByUserName(username)
 	if err != nil {
@@ -61,12 +67,21 @@ func (a *Adapter) CreatePost(post *models.Post) (*models.Post, error) {
 }
 
 func (a *Adapter) RetrievePostByID(i int) (*models.Post, error) {
-	// TODO implement me
-	panic("implement me")
+	p, err := a.driver.RetrievePostByID(i)
+	if err != nil {
+		return nil, err
+	}
+	return postDriverToModel(p), nil
 }
 
-func New(driver *camDriver.Driver) *Adapter {
-	return &Adapter{
-		driver: driver,
+func (a *Adapter) RetrieveMediaByPostID(id int) ([]*models.Media, error) {
+	m, err := a.driver.RetrieveMediaByPostID(id)
+	if err != nil {
+		return nil, err
 	}
+	media := make([]*models.Media, len(m))
+	for k, v := range m {
+		media[k] = mediaDriverToModel(v)
+	}
+	return media, err
 }

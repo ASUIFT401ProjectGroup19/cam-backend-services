@@ -38,3 +38,11 @@ func (d *Driver) CreatePost(post *cam.Post) (*cam.Post, error) {
 		return post, nil
 	}
 }
+
+func (d Driver) RetrievePostByID(id int) (*cam.Post, error) {
+	p, err := cam.PostByPostID(context.Background(), d.db, id)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}

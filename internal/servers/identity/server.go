@@ -1,7 +1,6 @@
 package identity
 
 import (
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/models"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -9,7 +8,6 @@ import (
 
 type Session interface {
 	Generate(*models.User) (string, error)
-	Validate(rawToken string) (*tokenmanager.UserClaims, error)
 }
 
 type Storage interface {
@@ -39,14 +37,18 @@ func (s *Server) CreateAccount(user *models.User) (int, error) {
 	return createdUser.ID, nil
 }
 
-func (s *Server) Login(username, password string) (string, error) {
+func (s *Server) Login(username, password string) (*models.User, error) {
 	user, err := s.storage.CheckPassword(username, password)
 	if err != nil {
-		return "", status.Error(codes.PermissionDenied, err.Error())
+		return nil, status.Error(codes.PermissionDenied, err.Error())
 	}
+	return user, nil
+}
+
+func (s *Server) GenerateToken(user *models.User) (string, error) {
 	token, err := s.session.Generate(user)
 	if err != nil {
-		return "", status.Error(codes.Internal, err.Error())
+		return "", err
 	}
 	return token, nil
 }
