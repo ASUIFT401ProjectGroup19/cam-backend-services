@@ -10,7 +10,6 @@ import (
 	postGatewayv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/proto"
 	"net"
 	"net/http"
 
@@ -134,12 +133,19 @@ func NewGRPCServer(config *Config) (net.Listener, *grpc.Server, func(), error) {
 }
 
 func NewHTTPServer(config *Config) (func(), error) {
-	corsMW := func(ctx context.Context, w http.ResponseWriter, resp proto.Message) error {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		return nil
-	}
+	mux := runtime.NewServeMux()
 
-	mux := runtime.NewServeMux(runtime.WithForwardResponseOption(corsMW))
+	cors := func(h http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE")
+			w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, Authorization, ResponseType")
+			if r.Method == http.MethodOptions {
+				return
+			}
+			h.ServeHTTP(w, r)
+		})
+	}
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	if err := identityGatewayv1.RegisterIdentityServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
@@ -149,7 +155,7 @@ func NewHTTPServer(config *Config) (func(), error) {
 		return nil, err
 	}
 	gateway := func() {
-		if err := http.ListenAndServe(fmt.Sprintf(":%s", config.RestPort), mux); err != nil {
+		if err := http.ListenAndServe(fmt.Sprintf(":%s", config.RestPort), cors(mux)); err != nil {
 			panic(err)
 		}
 	}
