@@ -1,5 +1,5 @@
 services:
-  backend-auth:
+  backend:
     build:
       context: .
     environment:
@@ -18,7 +18,7 @@ services:
     - 11000:11000
     restart: always
 
-  debug-auth:
+  debug:
     command: dlv debug --headless --listen=:2345 --api-version=2 --accept-multiclient cmd/main.go
     build:
       context: .

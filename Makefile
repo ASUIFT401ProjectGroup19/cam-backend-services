@@ -18,10 +18,10 @@ image: sync-mods
 	docker build -t backend/server .
 
 debug: sync-mods
-	docker compose up debug-auth -d
+	docker compose up debug -d
 
 run: sync-mods
-	docker compose up backend-auth -d --build
+	docker compose up backend -d --build
 
 stop:
 	docker compose down -v
