@@ -4,12 +4,20 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/servers/identity"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/servers/post"
-	identityGatewayv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
-	postGatewayv1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
+	authHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/identity"
+	postHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/post"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/interceptors/auth"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/interceptors/validation"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/tokenmanager"
+	storageAdapter "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam"
+	camDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/identity"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/post"
+	identityGatewayV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
+	postGatewayV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"net"
 	"net/http"
 
@@ -17,14 +25,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
-
-	storageAdapter "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/adapters/persistence/cam"
-	authHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/identity"
-	postHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/apihandlers/post"
-	camDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/database/cam"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/auth"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/interceptors/validation"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/middleware/tokenmanager"
 )
 
 const (
@@ -51,7 +51,10 @@ func GetConfig() (*Config, error) {
 
 	flag.Usage = func() { // To print all accepted ENV vars when run with -h
 		flag.PrintDefaults()
-		_ = envconfig.Usage(envCfgKey, config)
+		err := envconfig.Usage(envCfgKey, config)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	flag.Parse()
 
@@ -132,7 +135,7 @@ func NewGRPCServer(config *Config) (net.Listener, *grpc.Server, func(), error) {
 	return listener, server, closeHandlers, nil
 }
 
-func NewHTTPServer(config *Config) (func(), error) {
+func NewHTTPServer(config *Config) (func() error, error) {
 	mux := runtime.NewServeMux()
 
 	cors := func(h http.Handler) http.Handler {
@@ -148,16 +151,17 @@ func NewHTTPServer(config *Config) (func(), error) {
 	}
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	if err := identityGatewayv1.RegisterIdentityServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+	if err := identityGatewayV1.RegisterIdentityServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
 		return nil, err
 	}
-	if err := postGatewayv1.RegisterPostServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+	if err := postGatewayV1.RegisterPostServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
 		return nil, err
 	}
-	gateway := func() {
+	gateway := func() error {
 		if err := http.ListenAndServe(fmt.Sprintf(":%s", config.RestPort), cors(mux)); err != nil {
-			panic(err)
+			return err
 		}
+		return nil
 	}
 	return gateway, nil
 }
