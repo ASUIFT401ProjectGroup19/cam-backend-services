@@ -3,9 +3,9 @@ package identity
 import (
 	"context"
 	"fmt"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/tokenmanager"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/identity"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/tokenmanager"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 	identityV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
 	"go.uber.org/zap"
@@ -20,6 +20,7 @@ type Server interface {
 	CreateAccount(*types.User) (int, error)
 	Login(string, string) (*types.User, error)
 	GenerateToken(*types.User) (string, error)
+	RefreshToken(context.Context) (string, error)
 }
 
 type Handler struct {
@@ -30,20 +31,17 @@ type Handler struct {
 }
 
 func New(config *Config, s *identity.Server, log *zap.Logger) *Handler {
-	a := &Handler{
+	h := &Handler{
 		log:           log,
 		protectedRPCs: make(map[string]string),
 		server:        s,
 	}
-	a.requireAuth("RefreshToken")
-	return a
+	h.requireAuth("Refresh")
+	return h
 }
 
-func (a *Handler) CreateAccount(
-	ctx context.Context,
-	request *identityV1.CreateAccountRequest,
-) (*identityV1.CreateAccountResponse, error) {
-	_, err := a.server.CreateAccount(
+func (h *Handler) CreateAccount(ctx context.Context, request *identityV1.CreateAccountRequest) (*identityV1.CreateAccountResponse, error) {
+	_, err := h.server.CreateAccount(
 		&types.User{
 			FirstName: request.GetFirstName(),
 			LastName:  request.GetLastName(),
@@ -63,15 +61,12 @@ func (a *Handler) CreateAccount(
 	}
 }
 
-func (a *Handler) Login(
-	ctx context.Context,
-	request *identityV1.LoginRequest,
-) (*identityV1.LoginResponse, error) {
-	user, err := a.server.Login(request.GetUserName(), request.GetPassword())
+func (h *Handler) Login(ctx context.Context, request *identityV1.LoginRequest) (*identityV1.LoginResponse, error) {
+	user, err := h.server.Login(request.GetUserName(), request.GetPassword())
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, LoginFailed{}.Error())
 	}
-	token, err := a.server.GenerateToken(user)
+	token, err := h.server.GenerateToken(user)
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Unknown, Unknown{}.Error())
@@ -84,22 +79,36 @@ func (a *Handler) Login(
 	}
 }
 
-func (a *Handler) Close() {}
-
-func (a *Handler) RegisterAPIServer(server *grpc.Server) {
-	identityV1.RegisterIdentityServiceServer(server, a)
+func (h *Handler) Refresh(ctx context.Context, request *identityV1.RefreshRequest) (*identityV1.RefreshResponse, error) {
+	token, err := h.server.RefreshToken(ctx)
+	switch err.(type) {
+	default:
+		return nil, status.Error(codes.Unknown, Unknown{}.Error())
+	case *tokenmanager.TokenGeneration:
+		return nil, status.Error(codes.Internal, Internal{}.Error())
+	case nil:
+		return &identityV1.RefreshResponse{
+			Token: token,
+		}, nil
+	}
 }
 
-func (a *Handler) GetProtectedRPCs() []string {
-	protected := make([]string, len(a.protectedRPCs))
-	for _, v := range a.protectedRPCs {
+func (h *Handler) Close() {}
+
+func (h *Handler) RegisterAPIServer(server *grpc.Server) {
+	identityV1.RegisterIdentityServiceServer(server, h)
+}
+
+func (h *Handler) GetProtectedRPCs() []string {
+	protected := make([]string, len(h.protectedRPCs))
+	for _, v := range h.protectedRPCs {
 		protected = append(protected, v)
 	}
 	return protected
 }
 
-func (a *Handler) requireAuth(rpcName string) {
-	a.protectedRPCs[rpcName] = fmt.Sprintf(
+func (h *Handler) requireAuth(rpcName string) {
+	h.protectedRPCs[rpcName] = fmt.Sprintf(
 		"/%s/%s",
 		identityV1.IdentityService_ServiceDesc.ServiceName,
 		rpcName,

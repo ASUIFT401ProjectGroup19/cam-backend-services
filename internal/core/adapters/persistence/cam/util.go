@@ -2,6 +2,7 @@ package cam
 
 import (
 	"database/sql"
+	"encoding/base64"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 
 	camXO "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
@@ -53,14 +54,14 @@ func postModelToDriver(p *types.Post) *camXO.Post {
 func mediaDriverToModel(m *camXO.Media) *types.Media {
 	return &types.Media{
 		ID:     m.MediaID,
-		Link:   m.MediaLink.String,
-		PostID: m.Postid,
+		Link:   func() string { s, _ := base64.StdEncoding.DecodeString(m.MediaLink.String); return string(s) }(),
+		PostID: m.PostID,
 	}
 }
 
 func mediaModelToDriver(m *types.Media) *camXO.Media {
 	link := sql.NullString{
-		String: m.Link,
+		String: base64.StdEncoding.EncodeToString([]byte(m.Link)),
 	}
 	if m.Link != "" {
 		link.Valid = true
@@ -68,6 +69,6 @@ func mediaModelToDriver(m *types.Media) *camXO.Media {
 	return &camXO.Media{
 		MediaID:   m.ID,
 		MediaLink: link,
-		Postid:    m.PostID,
+		PostID:    m.PostID,
 	}
 }

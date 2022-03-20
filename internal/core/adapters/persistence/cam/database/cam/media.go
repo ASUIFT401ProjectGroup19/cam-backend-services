@@ -36,7 +36,7 @@ func (d *Driver) CreateMedia(media *camXO.Media) (*camXO.Media, error) {
 }
 
 func (d *Driver) RetrieveMediaByPostID(id int) ([]*camXO.Media, error) {
-	m, err := camXO.MediaByPostid(context.Background(), d.db, id)
+	m, err := camXO.MediaByPostID(context.Background(), d.db, id)
 	if err != nil {
 		return nil, err
 	}

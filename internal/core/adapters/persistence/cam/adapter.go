@@ -3,10 +3,13 @@ package cam
 import (
 	camDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
+	camXO "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
 )
 
+// Adapter implements feed.Storage.
 // Adapter implements identity.Storage.
 // Adapter implements post.Storage.
+// Adapter implements subscription.Storage.
 type Adapter struct {
 	driver *camDriver.Driver
 }
@@ -87,4 +90,28 @@ func (a *Adapter) RetrieveMediaByPostID(id int) ([]*types.Media, error) {
 		media[k] = mediaDriverToModel(v)
 	}
 	return media, err
+}
+
+func (a *Adapter) CreateSubscription(user, other *types.User) error {
+	sub := &camXO.Subscription{
+		UserID:         user.ID,
+		FollowedUserID: other.ID,
+	}
+	err := a.driver.CreateSubscription(sub)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *Adapter) DeleteSubscription(user, other *types.User) error {
+	sub := &camXO.Subscription{
+		UserID:         user.ID,
+		FollowedUserID: other.ID,
+	}
+	err := a.driver.DeleteSubscription(sub)
+	if err != nil {
+		return err
+	}
+	return nil
 }

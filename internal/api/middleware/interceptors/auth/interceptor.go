@@ -2,18 +2,22 @@ package auth
 
 import (
 	"context"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/tokenmanager"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )
 
-type Interceptor struct {
-	protectedRPCs map[string]string
-	tokenManager  *tokenmanager.TokenManager
+type TokenManager interface {
+	Validate(string) (*types.UserClaims, error)
 }
 
-func New(tm *tokenmanager.TokenManager) *Interceptor {
+type Interceptor struct {
+	protectedRPCs map[string]string
+	tokenManager  TokenManager
+}
+
+func New(tm TokenManager) *Interceptor {
 	return &Interceptor{
 		protectedRPCs: make(map[string]string),
 		tokenManager:  tm,
@@ -60,7 +64,7 @@ func (i *Interceptor) Unary() grpc.UnaryServerInterceptor {
 	}
 }
 
-func (i *Interceptor) check(ctx context.Context) (*tokenmanager.UserClaims, error) {
+func (i *Interceptor) check(ctx context.Context) (*types.UserClaims, error) {
 	metaData, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, &Metadata{Message: "failed to load metadata from incoming context"}

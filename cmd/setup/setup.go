@@ -4,15 +4,19 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	authHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/identity"
+	feedHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/feed"
+	identityHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/identity"
 	postHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/post"
+	subscriptionHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/subscription"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/interceptors/auth"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/interceptors/validation"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/tokenmanager"
 	storageAdapter "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam"
-	camDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/identity"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/post"
+	dbDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
+	feedServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/feed"
+	identityServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/identity"
+	postServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/post"
+	subscriptionServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/subscription"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/tokenmanager"
 	identityGatewayV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
 	postGatewayV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
@@ -32,11 +36,13 @@ const (
 )
 
 type Config struct {
-	Auth         *authHandler.Config
-	DB           *camDriver.Config
+	DB           *dbDriver.Config
+	Feed         *feedHandler.Config
+	Identity     *identityHandler.Config
 	Port         string `default:"10000"`
 	Post         *postHandler.Config
 	RestPort     string `default:"11000"`
+	Subscription *subscriptionHandler.Config
 	TokenManager *tokenmanager.Config
 }
 
@@ -78,7 +84,7 @@ func NewGRPCServer(config *Config) (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
-	databaseDriver, err := camDriver.New(config.DB, logger)
+	databaseDriver, err := dbDriver.New(config.DB, logger)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -90,12 +96,11 @@ func NewGRPCServer(config *Config) (net.Listener, *grpc.Server, func(), error) {
 
 	storage := storageAdapter.New(databaseDriver)
 
-	identityServer := identity.New(session, storage)
-	postServer := post.New(session, storage)
-
 	handlers := []Handler{
-		authHandler.New(config.Auth, identityServer, logger),
-		postHandler.New(config.Post, postServer, logger),
+		feedHandler.New(config.Feed, feedServer.New(session, storage), logger),
+		identityHandler.New(config.Identity, identityServer.New(session, storage), logger),
+		postHandler.New(config.Post, postServer.New(session, storage), logger),
+		subscriptionHandler.New(config.Subscription, subscriptionServer.New(session, storage), logger),
 	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.Port))

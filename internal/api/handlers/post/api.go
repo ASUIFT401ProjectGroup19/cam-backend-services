@@ -27,26 +27,26 @@ type Handler struct {
 }
 
 func New(config *Config, s *post.Server, log *zap.Logger) *Handler {
-	a := &Handler{
+	h := &Handler{
 		log:           log,
 		server:        s,
 		protectedRPCs: make(map[string]string),
 	}
-	a.requireAuth("Create")
-	a.requireAuth("Read")
-	a.requireAuth("Update")
-	a.requireAuth("Delete")
-	return a
+	h.requireAuth("Create")
+	h.requireAuth("Read")
+	h.requireAuth("Update")
+	h.requireAuth("Delete")
+	return h
 }
 
-func (a *Handler) Create(ctx context.Context, req *postV1.CreateRequest) (*postV1.CreateResponse, error) {
+func (h *Handler) Create(ctx context.Context, req *postV1.CreateRequest) (*postV1.CreateResponse, error) {
 	media := make([]*types.Media, len(req.GetPost().GetMedia()))
 	for k, v := range req.GetPost().GetMedia() {
 		media[k] = &types.Media{
 			Link: v.GetLink(),
 		}
 	}
-	p, err := a.server.Create(ctx,
+	p, err := h.server.Create(ctx,
 		&types.Post{
 			Description: req.GetPost().GetDescription(),
 		},
@@ -62,8 +62,8 @@ func (a *Handler) Create(ctx context.Context, req *postV1.CreateRequest) (*postV
 	}
 }
 
-func (a *Handler) Read(ctx context.Context, req *postV1.ReadRequest) (*postV1.ReadResponse, error) {
-	postResponse, mediaResponse, err := a.server.Read(int(req.GetId()))
+func (h *Handler) Read(ctx context.Context, req *postV1.ReadRequest) (*postV1.ReadResponse, error) {
+	postResponse, mediaResponse, err := h.server.Read(int(req.GetId()))
 	if err != nil {
 		return nil, err
 	}
@@ -82,30 +82,30 @@ func (a *Handler) Read(ctx context.Context, req *postV1.ReadRequest) (*postV1.Re
 	}, nil
 }
 
-func (a *Handler) Update(context.Context, *postV1.UpdateRequest) (*postV1.UpdateResponse, error) {
+func (h *Handler) Update(context.Context, *postV1.UpdateRequest) (*postV1.UpdateResponse, error) {
 	return &postV1.UpdateResponse{}, nil
 }
 
-func (a *Handler) Delete(context.Context, *postV1.DeleteRequest) (*postV1.DeleteResponse, error) {
+func (h *Handler) Delete(context.Context, *postV1.DeleteRequest) (*postV1.DeleteResponse, error) {
 	return &postV1.DeleteResponse{}, nil
 }
 
-func (a *Handler) Close() {}
+func (h *Handler) Close() {}
 
-func (a *Handler) RegisterAPIServer(server *grpc.Server) {
-	postV1.RegisterPostServiceServer(server, a)
+func (h *Handler) RegisterAPIServer(server *grpc.Server) {
+	postV1.RegisterPostServiceServer(server, h)
 }
 
-func (a *Handler) GetProtectedRPCs() []string {
-	protected := make([]string, len(a.protectedRPCs))
-	for _, v := range a.protectedRPCs {
+func (h *Handler) GetProtectedRPCs() []string {
+	protected := make([]string, len(h.protectedRPCs))
+	for _, v := range h.protectedRPCs {
 		protected = append(protected, v)
 	}
 	return protected
 }
 
-func (a *Handler) requireAuth(rpcName string) {
-	a.protectedRPCs[rpcName] = fmt.Sprintf(
+func (h *Handler) requireAuth(rpcName string) {
+	h.protectedRPCs[rpcName] = fmt.Sprintf(
 		"/%s/%s",
 		postV1.PostService_ServiceDesc.ServiceName,
 		rpcName,
