@@ -30,6 +30,8 @@ func New(c *Config, s Server, l *zap.Logger) *Handler {
 		protectedRPCs: make(map[string]string),
 		server:        s,
 	}
+	h.requireAuth("Follow")
+	h.requireAuth("Unfollow")
 	return h
 }
 
@@ -63,7 +65,9 @@ func (h *Handler) GetProtectedRPCs() []string {
 	return protected
 }
 
-func (h *Handler) RegisterAPIServer(s *grpc.Server) {}
+func (h *Handler) RegisterAPIServer(s *grpc.Server) {
+	subscriptionV1.RegisterSubscriptionServiceServer(s, h)
+}
 
 func (h *Handler) requireAuth(rpcName string) {
 	h.protectedRPCs[rpcName] = fmt.Sprintf(

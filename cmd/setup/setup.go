@@ -17,8 +17,10 @@ import (
 	postServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/post"
 	subscriptionServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/subscription"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/tokenmanager"
-	identityGatewayV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
-	postGatewayV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
+	feedV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/feed/v1"
+	identityV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
+	postV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
+	subscriptionV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/subscription/v1"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -156,10 +158,16 @@ func NewHTTPServer(config *Config) (func() error, error) {
 	}
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
-	if err := identityGatewayV1.RegisterIdentityServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+	if err := feedV1.RegisterFeedServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
 		return nil, err
 	}
-	if err := postGatewayV1.RegisterPostServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+	if err := identityV1.RegisterIdentityServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+		return nil, err
+	}
+	if err := postV1.RegisterPostServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+		return nil, err
+	}
+	if err := subscriptionV1.RegisterSubscriptionServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
 		return nil, err
 	}
 	gateway := func() error {

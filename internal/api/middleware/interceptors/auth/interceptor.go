@@ -73,8 +73,11 @@ func (i *Interceptor) check(ctx context.Context) (*types.UserClaims, error) {
 	if len(authValues) < 1 {
 		return nil, &MissingHeader{Message: "unable to parse auth header from incoming context"}
 	}
-	// Do something with claims here eventually
-	claims, err := i.tokenManager.Validate(authValues[0])
+	token := authValues[0]
+	if token[:7] == "Bearer " {
+		token = token[7:]
+	}
+	claims, err := i.tokenManager.Validate(token)
 	if err != nil {
 		return nil, &TokenValidation{Message: err.Error()}
 	}
