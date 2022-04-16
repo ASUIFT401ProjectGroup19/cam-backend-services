@@ -3,13 +3,13 @@ package cam
 import (
 	camDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
-	camXO "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
 )
 
 // Adapter implements feed.Storage.
 // Adapter implements identity.Storage.
 // Adapter implements post.Storage.
 // Adapter implements subscription.Storage.
+// Adapter serves to convert between cam.driver types and application domain types in core.types.
 type Adapter struct {
 	driver *camDriver.Driver
 }
@@ -29,15 +29,15 @@ func (a *Adapter) CheckPassword(username string, password string) (*types.User, 
 	if err != nil {
 		return nil, err
 	}
-	return userDriverToModel(user), nil
+	return user.ToModel(), nil
 }
 
 func (a *Adapter) CreateUser(user *types.User) (*types.User, error) {
-	u, err := a.driver.CreateUser(userModelToDriver(user))
+	u, err := a.driver.CreateUser(camDriver.UserFromModel(user))
 	if err != nil {
 		return nil, err
 	}
-	return userDriverToModel(u), nil
+	return u.ToModel(), nil
 }
 
 func (a *Adapter) RetrieveUserByID(id int) (*types.User, error) {
@@ -45,7 +45,7 @@ func (a *Adapter) RetrieveUserByID(id int) (*types.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	return userDriverToModel(user), nil
+	return user.ToModel(), nil
 }
 
 func (a *Adapter) RetrieveUserByUserName(username string) (*types.User, error) {
@@ -53,23 +53,23 @@ func (a *Adapter) RetrieveUserByUserName(username string) (*types.User, error) {
 	if err != nil {
 		return nil, err
 	}
-	return userDriverToModel(user), nil
+	return user.ToModel(), nil
 }
 
 func (a *Adapter) CreateMedia(media *types.Media) (*types.Media, error) {
-	m, err := a.driver.CreateMedia(mediaModelToDriver(media))
+	m, err := a.driver.CreateMedia(camDriver.MediaFromModel(media))
 	if err != nil {
 		return nil, err
 	}
-	return mediaDriverToModel(m), nil
+	return m.ToModel(), nil
 }
 
 func (a *Adapter) CreatePost(post *types.Post) (*types.Post, error) {
-	p, err := a.driver.CreatePost(postModelToDriver(post))
+	p, err := a.driver.CreatePost(camDriver.PostFromModel(post))
 	if err != nil {
 		return nil, err
 	}
-	return postDriverToModel(p), nil
+	return p.ToModel(), nil
 }
 
 func (a *Adapter) RetrievePostByID(i int) (*types.Post, error) {
@@ -77,7 +77,31 @@ func (a *Adapter) RetrievePostByID(i int) (*types.Post, error) {
 	if err != nil {
 		return nil, err
 	}
-	return postDriverToModel(p), nil
+	return p.ToModel(), nil
+}
+
+func (a *Adapter) RetrieveSubscribedPostsPaginated(userID, pageNumber, batchSize int) ([]*types.Post, error) {
+	p, err := a.driver.RetrieveSubscribedPostsPaginated(userID, pageNumber, batchSize)
+	if err != nil {
+		return nil, err
+	}
+	posts := make([]*types.Post, len(p))
+	for i, v := range p {
+		posts[i] = v.ToModel()
+	}
+	return posts, nil
+}
+
+func (a *Adapter) RetrieveUserPostsPaginated(userID, pageNumber, batchSize int) ([]*types.Post, error) {
+	p, err := a.driver.RetrieveUserPostsPaginated(userID, pageNumber, batchSize)
+	if err != nil {
+		return nil, err
+	}
+	posts := make([]*types.Post, len(p))
+	for i, v := range p {
+		posts[i] = v.ToModel()
+	}
+	return posts, nil
 }
 
 func (a *Adapter) RetrieveMediaByPostID(id int) ([]*types.Media, error) {
@@ -87,17 +111,13 @@ func (a *Adapter) RetrieveMediaByPostID(id int) ([]*types.Media, error) {
 	}
 	media := make([]*types.Media, len(m))
 	for k, v := range m {
-		media[k] = mediaDriverToModel(v)
+		media[k] = v.ToModel()
 	}
 	return media, err
 }
 
 func (a *Adapter) CreateSubscription(user, other *types.User) error {
-	sub := &camXO.Subscription{
-		UserID:         user.ID,
-		FollowedUserID: other.ID,
-	}
-	err := a.driver.CreateSubscription(sub)
+	err := a.driver.CreateSubscription(camDriver.SubFromModel(&types.Sub{UserID: user.ID, OtherID: other.ID}))
 	if err != nil {
 		return err
 	}
@@ -105,11 +125,7 @@ func (a *Adapter) CreateSubscription(user, other *types.User) error {
 }
 
 func (a *Adapter) DeleteSubscription(user, other *types.User) error {
-	sub := &camXO.Subscription{
-		UserID:         user.ID,
-		FollowedUserID: other.ID,
-	}
-	err := a.driver.DeleteSubscription(sub)
+	err := a.driver.DeleteSubscription(camDriver.SubFromModel(&types.Sub{UserID: user.ID, OtherID: other.ID}))
 	if err != nil {
 		return err
 	}

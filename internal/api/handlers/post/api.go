@@ -14,22 +14,28 @@ import (
 
 type Config struct{}
 
+type Session interface {
+	GetUserFromContext(context.Context) (*types.User, error)
+}
+
 type Server interface {
-	Create(context.Context, *types.Post, []*types.Media) (*types.Post, error)
-	Read(int) (*types.Post, []*types.Media, error)
+	Create(*types.User, *types.Post, []*types.Media) (*types.Post, error)
+	Read(int) (*types.Post, error)
 }
 
 type Handler struct {
 	postV1.UnimplementedPostServiceServer
 	log           *zap.Logger
 	protectedRPCs map[string]string
+	session       Session
 	server        Server
 }
 
-func New(config *Config, s *post.Server, log *zap.Logger) *Handler {
+func New(config *Config, session Session, server *post.Server, log *zap.Logger) *Handler {
 	h := &Handler{
 		log:           log,
-		server:        s,
+		session:       session,
+		server:        server,
 		protectedRPCs: make(map[string]string),
 	}
 	h.requireAuth("Create")
@@ -40,13 +46,14 @@ func New(config *Config, s *post.Server, log *zap.Logger) *Handler {
 }
 
 func (h *Handler) Create(ctx context.Context, req *postV1.CreateRequest) (*postV1.CreateResponse, error) {
+	user, err := h.session.GetUserFromContext(ctx)
 	media := make([]*types.Media, len(req.GetPost().GetMedia()))
 	for k, v := range req.GetPost().GetMedia() {
 		media[k] = &types.Media{
 			Link: v.GetLink(),
 		}
 	}
-	p, err := h.server.Create(ctx,
+	p, err := h.server.Create(user,
 		&types.Post{
 			Description: req.GetPost().GetDescription(),
 		},
@@ -63,12 +70,12 @@ func (h *Handler) Create(ctx context.Context, req *postV1.CreateRequest) (*postV
 }
 
 func (h *Handler) Read(ctx context.Context, req *postV1.ReadRequest) (*postV1.ReadResponse, error) {
-	postResponse, mediaResponse, err := h.server.Read(int(req.GetId()))
+	postResponse, err := h.server.Read(int(req.GetId()))
 	if err != nil {
 		return nil, err
 	}
-	media := make([]*postV1.Media, len(mediaResponse))
-	for k, v := range mediaResponse {
+	media := make([]*postV1.Media, len(postResponse.Media))
+	for k, v := range postResponse.Media {
 		media[k] = &postV1.Media{
 			Link: v.Link,
 		}

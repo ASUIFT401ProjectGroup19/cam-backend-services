@@ -1,10 +1,10 @@
-package feed
+package gallery
 
 import (
 	"context"
 	"fmt"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
-	feedV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/feed/v1"
+	galleryV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/gallery/v1"
 	postV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -15,15 +15,15 @@ import (
 type Config struct{}
 
 type Session interface {
-	GetUserFromContext(context.Context) (*types.User, error)
+	GetUserFromContext(ctx context.Context) (*types.User, error)
 }
 
 type Server interface {
-	GetPostBatch(*types.User, int, int) ([]*types.Post, error)
+	GetGallery(int, int, int) ([]*types.Post, error)
 }
 
 type Handler struct {
-	feedV1.UnimplementedFeedServiceServer
+	galleryV1.UnimplementedGalleryServiceServer
 	log           *zap.Logger
 	protectedRPCs map[string]string
 	session       Session
@@ -37,45 +37,16 @@ func New(c *Config, session Session, server Server, l *zap.Logger) *Handler {
 		session:       session,
 		server:        server,
 	}
-	h.requireAuth("Feed")
 	return h
 }
 
-func (h *Handler) Feed(ctx context.Context, req *feedV1.FeedRequest) (*feedV1.FeedResponse, error) {
-	user, err := h.session.GetUserFromContext(ctx)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "placeholder")
-	}
-	posts, err := h.server.GetPostBatch(user, int(req.GetPage()), int(req.GetBatchSize()))
+func (h *Handler) Gallery(ctx context.Context, request *galleryV1.GalleryRequest) (*galleryV1.GalleryResponse, error) {
+	posts, err := h.server.GetGallery(int(request.UserId), int(request.GetPage()), int(request.GetBatchSize()))
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Internal, "placeholder")
 	case nil:
-		response := &feedV1.FeedResponse{}
-		response.Posts = make([]*postV1.Post, len(posts))
-		for i, v := range posts {
-			response.Posts[i] = &postV1.Post{
-				Id:          int32(v.ID),
-				Description: v.Description,
-			}
-			response.Posts[i].Media = make([]*postV1.Media, len(v.Media))
-			for ii, vv := range v.Media {
-				response.Posts[i].Media[ii] = &postV1.Media{
-					Link: vv.Link,
-				}
-			}
-		}
-		return response, nil
-	}
-}
-
-func (h *Handler) All(ctx context.Context, req *feedV1.AllRequest) (*feedV1.AllResponse, error) {
-	posts, err := h.server.GetPostBatch(&types.User{}, int(req.GetPage()), int(req.GetBatchSize()))
-	switch err.(type) {
-	default:
-		return nil, status.Error(codes.Internal, "placeholder")
-	case nil:
-		response := &feedV1.AllResponse{}
+		response := &galleryV1.GalleryResponse{}
 		response.Posts = make([]*postV1.Post, len(posts))
 		for i, v := range posts {
 			response.Posts[i] = &postV1.Post{
@@ -104,13 +75,13 @@ func (h *Handler) GetProtectedRPCs() []string {
 }
 
 func (h *Handler) RegisterAPIServer(s *grpc.Server) {
-	feedV1.RegisterFeedServiceServer(s, h)
+	galleryV1.RegisterGalleryServiceServer(s, h)
 }
 
 func (h *Handler) requireAuth(rpcName string) {
 	h.protectedRPCs[rpcName] = fmt.Sprintf(
 		"/%s/%s",
-		feedV1.FeedService_ServiceDesc.ServiceName,
+		galleryV1.GalleryService_ServiceDesc.ServiceName,
 		rpcName,
 	)
 }

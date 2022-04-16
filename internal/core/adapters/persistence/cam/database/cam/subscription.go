@@ -3,12 +3,26 @@ package cam
 import (
 	"context"
 	"database/sql"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 	camXO "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
 	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 )
 
-func (d *Driver) CreateSubscription(sub *camXO.Subscription) error {
+type Sub struct {
+	camXO.Subscription
+}
+
+func SubFromModel(sub *types.Sub) *Sub {
+	return &Sub{
+		Subscription: camXO.Subscription{
+			UserID:         sub.UserID,
+			FollowedUserID: sub.OtherID,
+		},
+	}
+}
+
+func (d *Driver) CreateSubscription(sub *Sub) error {
 	transaction, err := d.db.Beginx()
 	if err != nil {
 		d.log.Error("database begin transaction", zap.Error(err))
@@ -34,7 +48,7 @@ func (d *Driver) CreateSubscription(sub *camXO.Subscription) error {
 	}
 }
 
-func (d *Driver) DeleteSubscription(sub *camXO.Subscription) error {
+func (d *Driver) DeleteSubscription(sub *Sub) error {
 	transaction, err := d.db.Beginx()
 	if err != nil {
 		d.log.Error("database begin transaction", zap.Error(err))

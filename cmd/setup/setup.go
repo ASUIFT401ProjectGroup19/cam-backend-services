@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	feedHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/feed"
+	galleryHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/gallery"
 	identityHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/identity"
 	postHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/post"
 	subscriptionHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/subscription"
@@ -12,12 +13,15 @@ import (
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/middleware/interceptors/validation"
 	storageAdapter "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam"
 	dbDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
+	sessionManager "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/session"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/session/tokenmanager"
 	feedServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/feed"
+	galleryServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/gallery"
 	identityServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/identity"
 	postServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/post"
 	subscriptionServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/subscription"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/tokenmanager"
 	feedV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/feed/v1"
+	galleryV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/gallery/v1"
 	identityV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
 	postV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	subscriptionV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/subscription/v1"
@@ -40,6 +44,7 @@ const (
 type Config struct {
 	DB           *dbDriver.Config
 	Feed         *feedHandler.Config
+	Gallery      *galleryHandler.Config
 	Identity     *identityHandler.Config
 	Port         string `default:"10000"`
 	Post         *postHandler.Config
@@ -91,18 +96,21 @@ func NewGRPCServer(config *Config) (net.Listener, *grpc.Server, func(), error) {
 		return nil, nil, nil, err
 	}
 
-	session, err := tokenmanager.New(config.TokenManager)
+	tm, err := tokenmanager.New(config.TokenManager)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
 	storage := storageAdapter.New(databaseDriver)
 
+	session := sessionManager.New(storage, tm)
+
 	handlers := []Handler{
-		feedHandler.New(config.Feed, feedServer.New(session, storage), logger),
-		identityHandler.New(config.Identity, identityServer.New(session, storage), logger),
-		postHandler.New(config.Post, postServer.New(session, storage), logger),
-		subscriptionHandler.New(config.Subscription, subscriptionServer.New(session, storage), logger),
+		feedHandler.New(config.Feed, session, feedServer.New(storage), logger),
+		galleryHandler.New(config.Gallery, session, galleryServer.New(storage), logger),
+		identityHandler.New(config.Identity, session, identityServer.New(storage), logger),
+		postHandler.New(config.Post, session, postServer.New(storage), logger),
+		subscriptionHandler.New(config.Subscription, session, subscriptionServer.New(storage), logger),
 	}
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", config.Port))
@@ -159,6 +167,9 @@ func NewHTTPServer(config *Config) (func() error, error) {
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	if err := feedV1.RegisterFeedServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+		return nil, err
+	}
+	if err := galleryV1.RegisterGalleryServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
 		return nil, err
 	}
 	if err := identityV1.RegisterIdentityServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {

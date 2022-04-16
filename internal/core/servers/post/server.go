@@ -1,13 +1,8 @@
 package post
 
 import (
-	"context"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 )
-
-type Session interface {
-	GetUsernameFromContext(context.Context) (string, error)
-}
 
 type Storage interface {
 	CreateMedia(*types.Media) (*types.Media, error)
@@ -18,20 +13,16 @@ type Storage interface {
 }
 
 type Server struct {
-	session Session
 	storage Storage
 }
 
-func New(session Session, storage Storage) *Server {
+func New(storage Storage) *Server {
 	return &Server{
-		session: session,
 		storage: storage,
 	}
 }
 
-func (s *Server) Create(ctx context.Context, post *types.Post, media []*types.Media) (*types.Post, error) {
-	username, _ := s.session.GetUsernameFromContext(ctx)
-	user, _ := s.storage.RetrieveUserByUserName(username)
+func (s *Server) Create(user *types.User, post *types.Post, media []*types.Media) (*types.Post, error) {
 	post.UserID = user.ID
 	postResult, _ := s.storage.CreatePost(post)
 	for k := range media {
@@ -41,14 +32,15 @@ func (s *Server) Create(ctx context.Context, post *types.Post, media []*types.Me
 	return postResult, nil
 }
 
-func (s *Server) Read(id int) (*types.Post, []*types.Media, error) {
+func (s *Server) Read(id int) (*types.Post, error) {
 	post, err := s.storage.RetrievePostByID(id)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	media, err := s.storage.RetrieveMediaByPostID(id)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	return post, media, nil
+	post.Media = media
+	return post, nil
 }

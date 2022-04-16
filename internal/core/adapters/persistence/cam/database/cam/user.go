@@ -3,6 +3,7 @@ package cam
 import (
 	"context"
 	"database/sql"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 
 	camXO "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
 	"github.com/go-sql-driver/mysql"
@@ -10,7 +11,33 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (d Driver) CheckPassword(user *camXO.User, password string) error {
+type User struct {
+	camXO.User
+}
+
+func UserFromModel(u *types.User) *User {
+	return &User{
+		User: camXO.User{
+			UserID:    u.ID,
+			FirstName: u.FirstName,
+			LastName:  u.LastName,
+			Email:     u.Email,
+			Password:  u.Password,
+		},
+	}
+}
+
+func (u *User) ToModel() *types.User {
+	return &types.User{
+		ID:        u.UserID,
+		FirstName: u.FirstName,
+		LastName:  u.LastName,
+		Email:     u.Email,
+		Password:  u.Password,
+	}
+}
+
+func (d Driver) CheckPassword(user *User, password string) error {
 	err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return &PasswordCheck{Message: err.Error()}
@@ -18,7 +45,7 @@ func (d Driver) CheckPassword(user *camXO.User, password string) error {
 	return nil
 }
 
-func (d *Driver) CreateUser(user *camXO.User) (*camXO.User, error) {
+func (d *Driver) CreateUser(user *User) (*User, error) {
 	hash, err := encrypt(user.Password)
 	if err != nil {
 		return nil, &EncryptPassword{Message: err.Error()}
@@ -49,20 +76,24 @@ func (d *Driver) CreateUser(user *camXO.User) (*camXO.User, error) {
 	}
 }
 
-func (d *Driver) RetrieveUserByID(id int) (*camXO.User, error) {
+func (d *Driver) RetrieveUserByID(id int) (*User, error) {
 	u, err := camXO.UserByUserID(context.Background(), d.db, id)
 	if err != nil {
 		return nil, &UserRetrieval{Message: err.Error()}
 	}
-	return u, nil
+	return &User{
+		User: *u,
+	}, nil
 }
 
-func (d *Driver) RetrieveUserByUserName(username string) (*camXO.User, error) {
+func (d *Driver) RetrieveUserByUserName(username string) (*User, error) {
 	u, err := camXO.UserByEmail(context.Background(), d.db, username)
 	if err != nil {
 		return nil, &UserRetrieval{Message: err.Error()}
 	}
-	return u, nil
+	return &User{
+		User: *u,
+	}, nil
 }
 
 // func UpdateUser
