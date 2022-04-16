@@ -1,4 +1,4 @@
-package feed
+package gallery
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 
 type Storage interface {
 	RetrieveMediaByPostID(int) ([]*types.Media, error)
-	RetrieveSubscribedPostsPaginated(int, int, int) ([]*types.Post, error)
+	RetrieveUserPostsPaginated(int, int, int) ([]*types.Post, error)
 }
 
 type Server struct {
@@ -21,8 +21,8 @@ func New(storage Storage) *Server {
 	return s
 }
 
-func (s *Server) GetPostBatch(user *types.User, pageNumber int, batchSize int) ([]*types.Post, error) {
-	posts, err := s.storage.RetrieveSubscribedPostsPaginated(user.ID, pageNumber, batchSize)
+func (s *Server) GetGallery(userID int, page int, batchSize int) ([]*types.Post, error) {
+	posts, err := s.storage.RetrieveUserPostsPaginated(userID, page, batchSize)
 	if err != nil {
 		return nil, errors.New("placeholder")
 	}

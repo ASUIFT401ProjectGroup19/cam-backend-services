@@ -1,8 +1,6 @@
 package tokenmanager
 
 import (
-	"context"
-	"errors"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 	"reflect"
 	"time"
@@ -75,11 +73,4 @@ func (t *TokenManager) Validate(rawToken string) (*types.UserClaims, error) {
 		return nil, &InvalidClaims{Message: "could not load UserClaims from token"}
 	}
 	return userClaims, nil
-}
-
-func (t *TokenManager) GetUsernameFromContext(ctx context.Context) (string, error) {
-	if claims, ok := ctx.Value("claims").(*types.UserClaims); ok {
-		return claims.Subject, nil
-	}
-	return "", errors.New("placeholder")
 }

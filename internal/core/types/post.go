@@ -7,4 +7,5 @@ type Post struct {
 	Description string
 	UserID      int
 	Date        time.Time
+	Media       []*Media
 }

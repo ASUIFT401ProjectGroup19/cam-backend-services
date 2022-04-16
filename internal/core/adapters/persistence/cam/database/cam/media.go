@@ -3,13 +3,43 @@ package cam
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 
 	camXO "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/xo/captureamoment"
 	"github.com/go-sql-driver/mysql"
 	"go.uber.org/zap"
 )
 
-func (d *Driver) CreateMedia(media *camXO.Media) (*camXO.Media, error) {
+type Media struct {
+	camXO.Media
+}
+
+func MediaFromModel(m *types.Media) *Media {
+	link := sql.NullString{
+		String: base64.StdEncoding.EncodeToString([]byte(m.Link)),
+	}
+	if m.Link != "" {
+		link.Valid = true
+	}
+	return &Media{
+		Media: camXO.Media{
+			MediaID:   m.ID,
+			MediaLink: link,
+			PostID:    m.PostID,
+		},
+	}
+}
+
+func (m *Media) ToModel() *types.Media {
+	return &types.Media{
+		ID:     m.MediaID,
+		Link:   func() string { s, _ := base64.StdEncoding.DecodeString(m.MediaLink.String); return string(s) }(),
+		PostID: m.PostID,
+	}
+}
+
+func (d *Driver) CreateMedia(media *Media) (*Media, error) {
 	transaction, err := d.db.Beginx()
 	if err != nil {
 		d.log.Error("database begin transaction", zap.Error(err))
@@ -35,10 +65,16 @@ func (d *Driver) CreateMedia(media *camXO.Media) (*camXO.Media, error) {
 	}
 }
 
-func (d *Driver) RetrieveMediaByPostID(id int) ([]*camXO.Media, error) {
+func (d *Driver) RetrieveMediaByPostID(id int) ([]*Media, error) {
 	m, err := camXO.MediaByPostID(context.Background(), d.db, id)
 	if err != nil {
 		return nil, err
 	}
-	return m, nil
+	media := make([]*Media, len(m))
+	for i, v := range m {
+		media[i] = &Media{
+			Media: *v,
+		}
+	}
+	return media, nil
 }

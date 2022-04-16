@@ -2,10 +2,10 @@ package identity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/identity"
-	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/tokenmanager"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/session/tokenmanager"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 	identityV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
 	"go.uber.org/zap"
@@ -16,25 +16,30 @@ import (
 
 type Config struct{}
 
+type Session interface {
+	GetUserFromContext(context.Context) (*types.User, error)
+	Generate(*types.User) (string, error)
+}
+
 type Server interface {
 	CreateAccount(*types.User) (int, error)
 	Login(string, string) (*types.User, error)
-	GenerateToken(*types.User) (string, error)
-	RefreshToken(context.Context) (string, error)
 }
 
 type Handler struct {
 	identityV1.UnimplementedIdentityServiceServer
 	log           *zap.Logger
 	protectedRPCs map[string]string
+	session       Session
 	server        Server
 }
 
-func New(config *Config, s *identity.Server, log *zap.Logger) *Handler {
+func New(config *Config, session Session, server Server, log *zap.Logger) *Handler {
 	h := &Handler{
 		log:           log,
 		protectedRPCs: make(map[string]string),
-		server:        s,
+		session:       session,
+		server:        server,
 	}
 	h.requireAuth("Refresh")
 	return h
@@ -66,7 +71,7 @@ func (h *Handler) Login(ctx context.Context, request *identityV1.LoginRequest) (
 	if err != nil {
 		return nil, status.Error(codes.PermissionDenied, LoginFailed{}.Error())
 	}
-	token, err := h.server.GenerateToken(user)
+	token, err := h.session.Generate(user)
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Unknown, Unknown{}.Error())
@@ -80,7 +85,11 @@ func (h *Handler) Login(ctx context.Context, request *identityV1.LoginRequest) (
 }
 
 func (h *Handler) Refresh(ctx context.Context, request *identityV1.RefreshRequest) (*identityV1.RefreshResponse, error) {
-	token, err := h.server.RefreshToken(ctx)
+	user, err := h.session.GetUserFromContext(ctx)
+	if err != nil {
+		return nil, errors.New("placeholder")
+	}
+	token, err := h.session.Generate(user)
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Unknown, Unknown{}.Error())

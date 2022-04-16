@@ -3,6 +3,7 @@ package subscription
 import (
 	"context"
 	"fmt"
+	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 	subscriptionV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/subscription/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -12,23 +13,29 @@ import (
 
 type Config struct{}
 
+type Session interface {
+	GetUserFromContext(context.Context) (*types.User, error)
+}
+
 type Server interface {
-	CreateSubscription(context.Context, int) error
-	DeleteSubscription(context.Context, int) error
+	CreateSubscription(int, int) error
+	DeleteSubscription(int, int) error
 }
 
 type Handler struct {
 	subscriptionV1.UnimplementedSubscriptionServiceServer
 	log           *zap.Logger
 	protectedRPCs map[string]string
+	session       Session
 	server        Server
 }
 
-func New(c *Config, s Server, l *zap.Logger) *Handler {
+func New(c *Config, session Session, server Server, l *zap.Logger) *Handler {
 	h := &Handler{
 		log:           l,
 		protectedRPCs: make(map[string]string),
-		server:        s,
+		session:       session,
+		server:        server,
 	}
 	h.requireAuth("Follow")
 	h.requireAuth("Unfollow")
@@ -36,7 +43,11 @@ func New(c *Config, s Server, l *zap.Logger) *Handler {
 }
 
 func (h *Handler) Follow(ctx context.Context, request *subscriptionV1.FollowRequest) (*subscriptionV1.FollowResponse, error) {
-	err := h.server.CreateSubscription(ctx, int(request.GetId()))
+	user, err := h.session.GetUserFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, Internal{}.Error())
+	}
+	err = h.server.CreateSubscription(user.ID, int(request.GetId()))
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Internal, Internal{}.Error())
@@ -46,7 +57,11 @@ func (h *Handler) Follow(ctx context.Context, request *subscriptionV1.FollowRequ
 }
 
 func (h *Handler) Unfollow(ctx context.Context, request *subscriptionV1.UnfollowRequest) (*subscriptionV1.UnfollowResponse, error) {
-	err := h.server.DeleteSubscription(ctx, int(request.GetId()))
+	user, err := h.session.GetUserFromContext(ctx)
+	if err != nil {
+		return nil, status.Error(codes.Internal, Internal{}.Error())
+	}
+	err = h.server.DeleteSubscription(user.ID, int(request.GetId()))
 	switch err.(type) {
 	default:
 		return nil, status.Error(codes.Internal, Internal{}.Error())
