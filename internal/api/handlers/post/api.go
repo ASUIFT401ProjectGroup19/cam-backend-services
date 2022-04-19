@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/post"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
+	commentV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/comment/v1"
 	postV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -19,7 +20,7 @@ type Session interface {
 }
 
 type Server interface {
-	Create(*types.User, *types.Post, []*types.Media) (*types.Post, error)
+	Create(*types.User, *types.Post, []*types.Media, []*types.Comment) (*types.Post, error)
 	Read(int) (*types.Post, error)
 }
 
@@ -53,11 +54,21 @@ func (h *Handler) Create(ctx context.Context, req *postV1.CreateRequest) (*postV
 			Link: v.GetLink(),
 		}
 	}
+	comments := make([]*types.Comment, len(req.GetPost().GetComments()))
+	for k, v := range req.GetPost().GetComments() {
+		comments[k] = &types.Comment{
+			Content:  v.Content,
+			ParentID: int(v.ParentId),
+			PostID:   int(v.PostId),
+			UserID:   user.ID,
+		}
+	}
 	p, err := h.server.Create(user,
 		&types.Post{
 			Description: req.GetPost().GetDescription(),
 		},
 		media,
+		comments,
 	)
 	switch err.(type) {
 	default:
@@ -80,11 +91,22 @@ func (h *Handler) Read(ctx context.Context, req *postV1.ReadRequest) (*postV1.Re
 			Link: v.Link,
 		}
 	}
+	comments := make([]*commentV1.Comment, len(postResponse.Comments))
+	for i, v := range postResponse.Comments {
+		comments[i] = &commentV1.Comment{
+			Id:       int32(v.ID),
+			Content:  v.Content,
+			ParentId: int32(v.ParentID),
+			PostId:   int32(v.PostID),
+			UserId:   int32(v.UserID),
+		}
+	}
 	return &postV1.ReadResponse{
 		Post: &postV1.Post{
 			Id:          int32(postResponse.ID),
 			Description: postResponse.Description,
 			Media:       media,
+			Comments:    comments,
 		},
 	}, nil
 }

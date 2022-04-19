@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	commentHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/comment"
 	feedHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/feed"
 	galleryHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/gallery"
 	identityHandler "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/api/handlers/identity"
@@ -15,11 +16,13 @@ import (
 	dbDriver "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/persistence/cam/database/cam"
 	sessionManager "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/session"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/adapters/session/tokenmanager"
+	commentServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/comment"
 	feedServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/feed"
 	galleryServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/gallery"
 	identityServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/identity"
 	postServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/post"
 	subscriptionServer "github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/servers/subscription"
+	commentV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/comment/v1"
 	feedV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/feed/v1"
 	galleryV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/gallery/v1"
 	identityV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/identity/v1"
@@ -43,6 +46,7 @@ const (
 
 type Config struct {
 	DB           *dbDriver.Config
+	Comment      *commentHandler.Config
 	Feed         *feedHandler.Config
 	Gallery      *galleryHandler.Config
 	Identity     *identityHandler.Config
@@ -106,6 +110,7 @@ func NewGRPCServer(config *Config) (net.Listener, *grpc.Server, func(), error) {
 	session := sessionManager.New(storage, tm)
 
 	handlers := []Handler{
+		commentHandler.New(config.Comment, session, commentServer.New(storage), logger),
 		feedHandler.New(config.Feed, session, feedServer.New(storage), logger),
 		galleryHandler.New(config.Gallery, session, galleryServer.New(storage), logger),
 		identityHandler.New(config.Identity, session, identityServer.New(storage), logger),
@@ -166,6 +171,9 @@ func NewHTTPServer(config *Config) (func() error, error) {
 	}
 
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
+	if err := commentV1.RegisterCommentServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
+		return nil, err
+	}
 	if err := feedV1.RegisterFeedServiceHandlerFromEndpoint(context.Background(), mux, fmt.Sprintf("localhost:%s", config.Port), opts); err != nil {
 		return nil, err
 	}

@@ -131,3 +131,37 @@ func (a *Adapter) DeleteSubscription(user, other *types.User) error {
 	}
 	return nil
 }
+
+func (a *Adapter) CreateComment(comment *types.Comment) (*types.Comment, error) {
+	result, err := a.driver.CreateComment(camDriver.CommentFromModel(comment))
+	if err != nil {
+		return nil, err
+	}
+	return result.ToModel(), nil
+}
+
+func (a *Adapter) ReadComment(commentID int) (*types.Comment, error) {
+	result, err := a.driver.ReadComment(commentID)
+	if err != nil {
+		return nil, err
+	}
+	return result.ToModel(), nil
+}
+
+func (a *Adapter) ReadCommentsByPostID(postID int) ([]*types.Comment, error) {
+	result, err := a.driver.ReadCommentsByPostID(postID)
+	if err != nil {
+		return nil, err
+	}
+	comments := make([]*types.Comment, len(result))
+	for i, v := range result {
+		comments[i] = &types.Comment{
+			ID:       v.CommentID,
+			Content:  v.CommentText.String,
+			ParentID: int(v.ParentID.Int64),
+			PostID:   v.PostID,
+			UserID:   v.UserID,
+		}
+	}
+	return comments, nil
+}

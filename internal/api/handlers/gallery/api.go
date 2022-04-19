@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
+	commentV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/comment/v1"
 	galleryV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/gallery/v1"
 	postV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"go.uber.org/zap"
@@ -57,6 +58,16 @@ func (h *Handler) Gallery(ctx context.Context, request *galleryV1.GalleryRequest
 			for ii, vv := range v.Media {
 				response.Posts[i].Media[ii] = &postV1.Media{
 					Link: vv.Link,
+				}
+			}
+			response.Posts[i].Comments = make([]*commentV1.Comment, len(v.Comments))
+			for ii, vv := range v.Comments {
+				response.Posts[i].Comments[ii] = &commentV1.Comment{
+					Id:       int32(vv.ID),
+					Content:  vv.Content,
+					ParentId: int32(vv.ParentID),
+					PostId:   int32(vv.PostID),
+					UserId:   int32(vv.UserID),
 				}
 			}
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
+	commentV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/comment/v1"
 	feedV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/feed/v1"
 	postV1 "github.com/ASUIFT401ProjectGroup19/cam-common/pkg/gen/proto/go/post/v1"
 	"go.uber.org/zap"
@@ -64,6 +65,16 @@ func (h *Handler) Feed(ctx context.Context, req *feedV1.FeedRequest) (*feedV1.Fe
 					Link: vv.Link,
 				}
 			}
+			response.Posts[i].Comments = make([]*commentV1.Comment, len(v.Comments))
+			for ii, vv := range v.Comments {
+				response.Posts[i].Comments[ii] = &commentV1.Comment{
+					Id:       int32(vv.ID),
+					Content:  vv.Content,
+					ParentId: int32(vv.ParentID),
+					PostId:   int32(vv.PostID),
+					UserId:   int32(vv.UserID),
+				}
+			}
 		}
 		return response, nil
 	}
@@ -86,6 +97,16 @@ func (h *Handler) All(ctx context.Context, req *feedV1.AllRequest) (*feedV1.AllR
 			for ii, vv := range v.Media {
 				response.Posts[i].Media[ii] = &postV1.Media{
 					Link: vv.Link,
+				}
+			}
+			response.Posts[i].Comments = make([]*commentV1.Comment, len(v.Comments))
+			for ii, vv := range v.Comments {
+				response.Posts[i].Comments[ii] = &commentV1.Comment{
+					Id:       int32(vv.ID),
+					Content:  vv.Content,
+					ParentId: int32(vv.ParentID),
+					PostId:   int32(vv.PostID),
+					UserId:   int32(vv.UserID),
 				}
 			}
 		}

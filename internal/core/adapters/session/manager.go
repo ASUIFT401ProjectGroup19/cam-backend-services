@@ -25,7 +25,7 @@ func New(storage Storage, tm *tokenmanager.TokenManager) *Manager {
 
 func (m *Manager) GetUserFromContext(ctx context.Context) (*types.User, error) {
 	if claims, ok := ctx.Value("claims").(*types.UserClaims); !ok {
-		return nil, errors.New("placeholder")
+		return nil, errors.New("unable to find claims in ")
 	} else {
 		user, err := m.storage.RetrieveUserByUserName(claims.Subject)
 		if err != nil {

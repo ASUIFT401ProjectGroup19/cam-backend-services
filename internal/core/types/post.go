@@ -8,4 +8,5 @@ type Post struct {
 	UserID      int
 	Date        time.Time
 	Media       []*Media
+	Comments    []*Comment
 }
