@@ -80,6 +80,7 @@ func (h *Handler) Read(ctx context.Context, request *commentV1.ReadRequest) (*co
 				ParentId: int32(comment.ParentID),
 				PostId:   int32(comment.PostID),
 				UserId:   int32(comment.UserID),
+				UserName: comment.UserName,
 			},
 		}, nil
 	}
@@ -137,6 +138,7 @@ func (h *Handler) CommentsByPost(ctx context.Context, request *commentV1.Comment
 				ParentId: int32(v.ParentID),
 				PostId:   int32(v.PostID),
 				UserId:   int32(v.UserID),
+				UserName: v.UserName,
 			}
 		}
 		return &commentV1.CommentsByPostResponse{

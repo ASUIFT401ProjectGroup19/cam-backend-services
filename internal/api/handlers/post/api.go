@@ -81,32 +81,35 @@ func (h *Handler) Create(ctx context.Context, req *postV1.CreateRequest) (*postV
 }
 
 func (h *Handler) Read(ctx context.Context, req *postV1.ReadRequest) (*postV1.ReadResponse, error) {
-	postResponse, err := h.server.Read(int(req.GetId()))
+	result, err := h.server.Read(int(req.GetId()))
 	if err != nil {
 		return nil, err
 	}
-	media := make([]*postV1.Media, len(postResponse.Media))
-	for k, v := range postResponse.Media {
+	media := make([]*postV1.Media, len(result.Media))
+	for k, v := range result.Media {
 		media[k] = &postV1.Media{
 			Link: v.Link,
 		}
 	}
-	comments := make([]*commentV1.Comment, len(postResponse.Comments))
-	for i, v := range postResponse.Comments {
+	comments := make([]*commentV1.Comment, len(result.Comments))
+	for i, v := range result.Comments {
 		comments[i] = &commentV1.Comment{
 			Id:       int32(v.ID),
 			Content:  v.Content,
 			ParentId: int32(v.ParentID),
 			PostId:   int32(v.PostID),
 			UserId:   int32(v.UserID),
+			UserName: v.UserName,
 		}
 	}
 	return &postV1.ReadResponse{
 		Post: &postV1.Post{
-			Id:          int32(postResponse.ID),
-			Description: postResponse.Description,
+			Id:          int32(result.ID),
+			Description: result.Description,
 			Media:       media,
 			Comments:    comments,
+			UserId:      int32(result.UserID),
+			UserName:    result.UserName,
 		},
 	}, nil
 }

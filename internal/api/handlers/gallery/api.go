@@ -53,6 +53,8 @@ func (h *Handler) Gallery(ctx context.Context, request *galleryV1.GalleryRequest
 			response.Posts[i] = &postV1.Post{
 				Id:          int32(v.ID),
 				Description: v.Description,
+				UserId:      int32(v.UserID),
+				UserName:    v.UserName,
 			}
 			response.Posts[i].Media = make([]*postV1.Media, len(v.Media))
 			for ii, vv := range v.Media {
@@ -68,6 +70,7 @@ func (h *Handler) Gallery(ctx context.Context, request *galleryV1.GalleryRequest
 					ParentId: int32(vv.ParentID),
 					PostId:   int32(vv.PostID),
 					UserId:   int32(vv.UserID),
+					UserName: vv.UserName,
 				}
 			}
 		}

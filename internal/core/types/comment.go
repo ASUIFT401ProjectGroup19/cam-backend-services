@@ -6,4 +6,5 @@ type Comment struct {
 	ParentID int
 	PostID   int
 	UserID   int
+	UserName string
 }

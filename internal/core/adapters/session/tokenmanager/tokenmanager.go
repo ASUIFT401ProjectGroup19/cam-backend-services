@@ -3,6 +3,7 @@ package tokenmanager
 import (
 	"github.com/ASUIFT401ProjectGroup19/cam-backend-services/internal/core/types"
 	"reflect"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -44,6 +45,7 @@ func (t *TokenManager) Generate(user *types.User) (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   user.Email,
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(t.validDuration)),
+			ID:        strconv.Itoa(user.ID),
 		},
 	}
 	token := jwt.NewWithClaims(t.signingMethod, claims)

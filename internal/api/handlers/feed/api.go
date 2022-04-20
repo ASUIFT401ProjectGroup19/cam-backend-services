@@ -58,6 +58,8 @@ func (h *Handler) Feed(ctx context.Context, req *feedV1.FeedRequest) (*feedV1.Fe
 			response.Posts[i] = &postV1.Post{
 				Id:          int32(v.ID),
 				Description: v.Description,
+				UserId:      int32(v.UserID),
+				UserName:    v.UserName,
 			}
 			response.Posts[i].Media = make([]*postV1.Media, len(v.Media))
 			for ii, vv := range v.Media {
@@ -73,6 +75,7 @@ func (h *Handler) Feed(ctx context.Context, req *feedV1.FeedRequest) (*feedV1.Fe
 					ParentId: int32(vv.ParentID),
 					PostId:   int32(vv.PostID),
 					UserId:   int32(vv.UserID),
+					UserName: vv.UserName,
 				}
 			}
 		}
@@ -92,6 +95,8 @@ func (h *Handler) All(ctx context.Context, req *feedV1.AllRequest) (*feedV1.AllR
 			response.Posts[i] = &postV1.Post{
 				Id:          int32(v.ID),
 				Description: v.Description,
+				UserId:      int32(v.UserID),
+				UserName:    v.UserName,
 			}
 			response.Posts[i].Media = make([]*postV1.Media, len(v.Media))
 			for ii, vv := range v.Media {
@@ -107,6 +112,7 @@ func (h *Handler) All(ctx context.Context, req *feedV1.AllRequest) (*feedV1.AllR
 					ParentId: int32(vv.ParentID),
 					PostId:   int32(vv.PostID),
 					UserId:   int32(vv.UserID),
+					UserName: vv.UserName,
 				}
 			}
 		}

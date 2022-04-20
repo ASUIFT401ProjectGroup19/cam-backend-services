@@ -73,11 +73,17 @@ func (a *Adapter) CreatePost(post *types.Post) (*types.Post, error) {
 }
 
 func (a *Adapter) RetrievePostByID(i int) (*types.Post, error) {
-	p, err := a.driver.RetrievePostByID(i)
+	result, err := a.driver.RetrievePostByID(i)
 	if err != nil {
 		return nil, err
 	}
-	return p.ToModel(), nil
+	user, err := a.RetrieveUserByID(result.UserID)
+	if err != nil {
+		return nil, err
+	}
+	post := result.ToModel()
+	post.UserName = user.Email
+	return post, nil
 }
 
 func (a *Adapter) RetrieveSubscribedPostsPaginated(userID, pageNumber, batchSize int) ([]*types.Post, error) {
@@ -145,7 +151,13 @@ func (a *Adapter) ReadComment(commentID int) (*types.Comment, error) {
 	if err != nil {
 		return nil, err
 	}
-	return result.ToModel(), nil
+	user, err := a.driver.RetrieveUserByID(result.UserID)
+	if err != nil {
+		return nil, err
+	}
+	comment := result.ToModel()
+	comment.UserName = user.Email
+	return comment, nil
 }
 
 func (a *Adapter) ReadCommentsByPostID(postID int) ([]*types.Comment, error) {
@@ -155,12 +167,17 @@ func (a *Adapter) ReadCommentsByPostID(postID int) ([]*types.Comment, error) {
 	}
 	comments := make([]*types.Comment, len(result))
 	for i, v := range result {
+		user, err := a.driver.RetrieveUserByID(v.UserID)
+		if err != nil {
+
+		}
 		comments[i] = &types.Comment{
 			ID:       v.CommentID,
 			Content:  v.CommentText.String,
 			ParentID: int(v.ParentID.Int64),
 			PostID:   v.PostID,
 			UserID:   v.UserID,
+			UserName: user.Email,
 		}
 	}
 	return comments, nil

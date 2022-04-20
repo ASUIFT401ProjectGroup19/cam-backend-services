@@ -8,6 +8,7 @@ import (
 type Storage interface {
 	RetrieveMediaByPostID(int) ([]*types.Media, error)
 	RetrieveUserPostsPaginated(int, int, int) ([]*types.Post, error)
+	ReadCommentsByPostID(int) ([]*types.Comment, error)
 }
 
 type Server struct {
@@ -32,6 +33,11 @@ func (s *Server) GetGallery(userID int, page int, batchSize int) ([]*types.Post,
 			return nil, err
 		}
 		posts[i].Media = media
+		comments, err := s.storage.ReadCommentsByPostID(v.ID)
+		if err != nil {
+			return nil, err
+		}
+		posts[i].Comments = comments
 	}
 	return posts, nil
 }
