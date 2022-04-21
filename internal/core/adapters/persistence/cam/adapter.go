@@ -94,6 +94,11 @@ func (a *Adapter) RetrieveSubscribedPostsPaginated(userID, pageNumber, batchSize
 	posts := make([]*types.Post, len(p))
 	for i, v := range p {
 		posts[i] = v.ToModel()
+		user, err := a.driver.RetrieveUserByID(posts[i].UserID)
+		if err != nil {
+			return nil, err
+		}
+		posts[i].UserName = user.Email
 	}
 	return posts, nil
 }
@@ -103,9 +108,14 @@ func (a *Adapter) RetrieveUserPostsPaginated(userID, pageNumber, batchSize int) 
 	if err != nil {
 		return nil, err
 	}
+	user, err := a.driver.RetrieveUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
 	posts := make([]*types.Post, len(p))
 	for i, v := range p {
 		posts[i] = v.ToModel()
+		posts[i].UserName = user.Email
 	}
 	return posts, nil
 }

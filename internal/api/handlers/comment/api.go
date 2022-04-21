@@ -49,7 +49,7 @@ func New(c *Config, session Session, server Server, l *zap.Logger) *Handler {
 func (h *Handler) Create(ctx context.Context, request *commentV1.CreateRequest) (*commentV1.CreateResponse, error) {
 	user, err := h.session.GetUserFromContext(ctx)
 	if err != nil {
-		return nil, status.Error(codes.Internal, "placeholder")
+		return nil, status.Error(codes.Internal, err.Error())
 	}
 	comment, err := h.server.Create(user, &types.Comment{
 		Content:  request.GetComment().GetContent(),
@@ -59,7 +59,7 @@ func (h *Handler) Create(ctx context.Context, request *commentV1.CreateRequest) 
 	})
 	switch err.(type) {
 	default:
-		return nil, status.Error(codes.Internal, "placeholder")
+		return nil, status.Error(codes.Internal, err.Error())
 	case nil:
 		return &commentV1.CreateResponse{
 			Id: int32(comment.ID),
